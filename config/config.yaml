@@ -1,0 +1,58 @@
+# GOTAK Military Operations Management System
+# Main configuration file
+
+application:
+  name: "GOTAK"
+  version: "0.1.0"
+  environment: "development"
+  debug: true
+
+security:
+  classification_level: "RESTRICTED"
+  access_control: "RBAC"
+  encryption_required: true
+  audit_logging: true
+
+database:
+  type: "sqlite"
+  host: "localhost"
+  name: "gotak.db"
+  # Connection details will be in environment variables
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "gotak.log"
+  max_size_mb: 100
+  backup_count: 5
+
+operations:
+  mission_planning:
+    enabled: true
+    max_concurrent_missions: 50
+  
+  resource_management:
+    enabled: true
+    track_personnel: true
+    track_equipment: true
+    track_supplies: true
+  
+  communications:
+    enabled: true
+    secure_channels_only: true
+    encryption_algorithm: "AES-256"
+  
+  intelligence:
+    enabled: true
+    data_classification: "RESTRICTED"
+    retention_days: 365
+
+reporting:
+  enabled: true
+  formats: ["PDF", "JSON", "CSV"]
+  auto_classification: true
+  
+ui:
+  theme: "military"
+  display_classification: true
+  session_timeout_minutes: 30
