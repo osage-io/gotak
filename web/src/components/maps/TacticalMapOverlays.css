@@ -1,0 +1,369 @@
+/* Tactical Map Overlays */
+.tactical-map-overlays {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tactical-map-overlays > * {
+  pointer-events: auto;
+}
+
+/* Drawing Instructions Overlay */
+.drawing-instructions {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  z-index: 2000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.instructions-content p {
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+}
+
+.instructions-content strong {
+  color: #3b82f6;
+  font-size: 16px;
+}
+
+.instructions-shortcuts {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #ccc;
+  border-top: 1px solid #333;
+  padding-top: 8px;
+}
+
+.instructions-shortcuts kbd {
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #fff;
+  margin: 0 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Overlay Info Panel */
+.overlay-info-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 320px;
+  background: rgba(31, 31, 31, 0.95);
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
+  font-size: 13px;
+}
+
+.overlay-info-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.overlay-info-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  margin-right: 12px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.overlay-info-content {
+  padding: 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.info-row:last-of-type {
+  margin-bottom: 0;
+}
+
+.info-label {
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.info-value {
+  color: #fff;
+  font-size: 13px;
+  text-align: right;
+  flex: 1;
+  word-break: break-word;
+}
+
+.priority-badge {
+  background: #374151;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.priority-badge.high {
+  background: #dc2626;
+}
+
+.priority-badge.medium {
+  background: #f59e0b;
+}
+
+.priority-badge.low {
+  background: #10b981;
+}
+
+.classification-badge {
+  background: #7c2d12;
+  color: #fed7aa;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.classification-badge.secret {
+  background: #dc2626;
+  color: #fecaca;
+}
+
+.classification-badge.confidential {
+  background: #f59e0b;
+  color: #fde68a;
+}
+
+.classification-badge.restricted {
+  background: #10b981;
+  color: #d1fae5;
+}
+
+.overlay-actions {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #444;
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  background: #444;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s;
+  flex: 1;
+  font-weight: 500;
+}
+
+.action-btn:hover {
+  background: #555;
+}
+
+.action-btn.danger {
+  background: #dc2626;
+}
+
+.action-btn.danger:hover {
+  background: #ef4444;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .overlay-info-panel {
+    width: 280px;
+    left: 10px;
+    bottom: 10px;
+  }
+  
+  .drawing-instructions {
+    max-width: 320px;
+    margin: 0 20px;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .info-value {
+    text-align: left;
+  }
+}
+
+@media (max-height: 600px) {
+  .overlay-info-panel {
+    bottom: 10px;
+  }
+  
+  .drawing-instructions {
+    padding: 15px;
+  }
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus Management */
+.overlay-info-panel button:focus,
+.drawing-instructions button:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Tactical Marker Styles for Leaflet */
+.tactical-marker {
+  background: none !important;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* Tactical Overlay Popup Styles */
+.tactical-overlay-popup {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 250px;
+}
+
+.tactical-overlay-popup h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tactical-overlay-popup p {
+  margin: 0 0 8px 0;
+  color: #666;
+}
+
+.overlay-meta {
+  border-top: 1px solid #eee;
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.overlay-meta div {
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.overlay-meta strong {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Dark theme for popups */
+.leaflet-popup-content-wrapper {
+  background: rgba(31, 31, 31, 0.95);
+  color: #fff;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+}
+
+.leaflet-popup-content-wrapper .tactical-overlay-popup h4 {
+  color: #fff;
+}
+
+.leaflet-popup-content-wrapper .tactical-overlay-popup p {
+  color: #ccc;
+}
+
+.leaflet-popup-content-wrapper .overlay-meta {
+  border-top-color: #444;
+}
+
+.leaflet-popup-content-wrapper .overlay-meta strong {
+  color: #fff;
+}
+
+.leaflet-popup-tip {
+  background: rgba(31, 31, 31, 0.95);
+}

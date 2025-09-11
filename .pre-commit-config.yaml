@@ -1,0 +1,115 @@
+# Pre-commit hooks configuration for GoTAK
+# See https://pre-commit.com for more information
+
+repos:
+  # Go-specific hooks
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
+        name: Format Go code
+        description: Formats Go code using gofmt
+        
+      - id: go-imports
+        name: Fix Go imports  
+        description: Fixes imports using goimports
+        
+      - id: go-mod-tidy
+        name: Tidy Go modules
+        description: Ensures go.mod and go.sum are up to date
+        
+      - id: go-vet-mod
+        name: Run go vet
+        description: Runs go vet on Go packages
+        
+      - id: golangci-lint
+        name: Run golangci-lint
+        description: Runs golangci-lint
+        
+      - id: go-unit-tests
+        name: Run Go unit tests
+        description: Runs go test on changed packages only
+
+  # General file hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+        description: Trims trailing whitespace from files
+        
+      - id: end-of-file-fixer
+        name: Fix end of files
+        description: Ensures files end with a newline
+        
+      - id: check-yaml
+        name: Check YAML syntax
+        description: Validates YAML files
+        args: ['--unsafe']
+        
+      - id: check-json
+        name: Check JSON syntax
+        description: Validates JSON files
+        
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+        description: Checks for merge conflict markers
+        
+      - id: check-added-large-files
+        name: Check for large files
+        description: Prevents committing large files
+        args: ['--maxkb=1000']
+        
+      - id: mixed-line-ending
+        name: Check line endings
+        description: Replaces or checks mixed line endings
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: Detect secrets
+        description: Scans for potential secrets in code
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            \.secrets\.baseline|
+            \.git/.*|
+            go\.sum|
+            .*\.lock$|
+            .*\.log$
+          )$
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        name: Lint Dockerfiles
+        description: Lints Dockerfiles using hadolint
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown files
+        description: Lints Markdown files
+        args: ['--fix']
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        name: Lint shell scripts
+        description: Lints shell scripts using ShellCheck
+
+# Configuration
+default_stages: [commit]
+fail_fast: true
+
+# Performance optimization - only run on changed files
+default_language_version:
+  golang: '1.21'

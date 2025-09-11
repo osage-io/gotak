@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # Test database with PostGIS
+  postgres-test:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: gotak-test-db
+    environment:
+      POSTGRES_DB: gotak_test
+      POSTGRES_USER: gotak_test
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    command: postgres -c log_statement=all -c log_destination=stderr
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gotak_test -d gotak_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Test backend server
+  gotak-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: gotak-test-server
+    environment:
+      - DATABASE_URL=postgres://gotak_test:test_password@postgres-test:5432/gotak_test?sslmode=disable
+      - JWT_SECRET=test_jwt_secret_key_for_integration_tests
+      - LOG_LEVEL=debug
+      - GIN_MODE=test
+      - TEST_MODE=true
+      - OSRM_URL=  # Empty for direct calculation in tests
+    ports:
+      - "8081:8080"  # HTTP API
+      - "8088:8087"  # TAK TCP/UDP
+      - "8090:8089"  # TAK TLS
+      - "8082:8080"  # WebSocket (same as HTTP in our setup)
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    volumes:
+      - ./config:/app/config:ro
+      - ./test-data:/app/test-data
+      - test-cache:/app/cache
+    command: ["./gotak-server", "-config", "/app/config/test.yaml", "-migrate"]
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Frontend development server for integration tests
+  frontend-test:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.test
+    container_name: gotak-test-frontend
+    environment:
+      - NODE_ENV=test
+      - VITE_API_URL=http://gotak-test:8080
+      - VITE_WS_URL=ws://gotak-test:8080/ws
+    ports:
+      - "3001:3000"  # Different port for testing
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    depends_on:
+      gotak-test:
+        condition: service_healthy
+    command: npm run dev
+
+  # Test runner container for end-to-end tests
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    container_name: gotak-e2e-tests
+    environment:
+      - API_BASE_URL=http://gotak-test:8080
+      - FRONTEND_URL=http://frontend-test:3000
+      - DATABASE_URL=postgres://gotak_test:test_password@postgres-test:5432/gotak_test?sslmode=disable
+      - WS_URL=ws://gotak-test:8080/ws
+    volumes:
+      - ./tests:/app/tests
+      - ./test-results:/app/results
+    depends_on:
+      - gotak-test
+      - frontend-test
+      - postgres-test
+    profiles:
+      - testing
+    command: npm run test:e2e
+
+volumes:
+  postgres-test-data:
+  test-cache:
+
+networks:
+  default:
+    name: gotak-test-network

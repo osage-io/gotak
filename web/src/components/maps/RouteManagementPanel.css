@@ -1,0 +1,638 @@
+/* Route Management Panel Styles */
+
+.route-management-panel {
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 16px;
+  color: #e5e5e5;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  backdrop-filter: blur(4px);
+  min-width: 300px;
+  max-width: 500px;
+  height: fit-content;
+  max-height: 70vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.route-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 12px;
+}
+
+.route-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.route-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.create-route-btn,
+.refresh-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.create-route-btn {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.create-route-btn:hover {
+  background: #1d4ed8;
+}
+
+.refresh-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+.refresh-btn:hover {
+  background: #4b5563;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.route-panel-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.search-controls {
+  display: flex;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e5e5e5;
+  font-size: 13px;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-select {
+  flex: 1;
+  padding: 6px 8px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e5e5e5;
+  font-size: 12px;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.sort-order-btn {
+  padding: 6px 8px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e5e5e5;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.sort-order-btn:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.route-panel-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.error-message,
+.loading-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fecaca;
+}
+
+.loading-message {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+.routes-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.routes-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.routes-list::-webkit-scrollbar-track {
+  background: rgba(75, 85, 99, 0.3);
+  border-radius: 3px;
+}
+
+.routes-list::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.routes-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-state p {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+.route-item {
+  background: rgba(75, 85, 99, 0.2);
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.route-item:hover {
+  background: rgba(75, 85, 99, 0.3);
+  border-color: #6b7280;
+}
+
+.route-item.selected {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+}
+
+.route-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.route-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #f3f4f6;
+}
+
+.route-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-icon {
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  color: #9ca3af;
+}
+
+.btn-icon:hover {
+  background: rgba(75, 85, 99, 0.5);
+  border-color: #6b7280;
+}
+
+.edit-btn:hover {
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+.delete-btn:hover {
+  color: #f87171;
+  border-color: #ef4444;
+}
+
+.details-btn:hover {
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+.route-item-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.route-stat {
+  font-size: 11px;
+  color: #d1d5db;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-description {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.route-details {
+  background: rgba(17, 24, 39, 0.5);
+  border: 1px solid #374151;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.route-detail-row {
+  margin-bottom: 6px;
+  display: flex;
+  gap: 8px;
+}
+
+.route-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.route-detail-row strong {
+  color: #f59e0b;
+  min-width: 80px;
+  font-weight: 600;
+}
+
+.route-detail-row code {
+  background: rgba(75, 85, 99, 0.5);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.waypoints-list {
+  flex: 1;
+  margin-top: 4px;
+}
+
+.waypoint-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.waypoint-number {
+  color: #f59e0b;
+  font-weight: 600;
+  min-width: 20px;
+}
+
+.waypoint-coords {
+  color: #d1d5db;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #333;
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.btn-secondary {
+  padding: 6px 12px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1003;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 8px;
+  width: 90vw;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #e5e5e5;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #333;
+}
+
+.modal-header h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  color: #f3f4f6;
+  background: rgba(75, 85, 99, 0.3);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e5e5e5;
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #9ca3af;
+}
+
+.route-info {
+  background: rgba(75, 85, 99, 0.2);
+  border: 1px solid #4b5563;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.info-item {
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-item strong {
+  color: #f59e0b;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid #333;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  background: #2563eb;
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  border-color: #2563eb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .route-management-panel {
+    min-width: 280px;
+    max-width: 100%;
+    margin: 0 10px;
+  }
+
+  .route-panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .route-panel-actions {
+    justify-content: center;
+  }
+
+  .route-panel-controls {
+    gap: 8px;
+  }
+
+  .sort-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .route-item-summary {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .route-actions {
+    flex-wrap: wrap;
+  }
+
+  .modal-content {
+    width: 95vw;
+    margin: 10px;
+  }
+
+  .modal-body {
+    padding: 15px;
+  }
+
+  .modal-footer {
+    padding: 15px;
+    flex-direction: column;
+  }
+
+  .modal-footer button {
+    width: 100%;
+  }
+}
+
+/* Animation */
+.route-item {
+  animation: slideInUp 0.2s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-content {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

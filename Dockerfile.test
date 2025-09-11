@@ -1,0 +1,90 @@
+# Test Dockerfile for GoTAK
+# Includes test dependencies and development tools
+
+FROM golang:1.21-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    wget
+
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the test server with debug info
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -gcflags="all=-N -l" \
+    -o bin/gotak-server \
+    ./cmd/gotak-server
+
+# Build test client
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -o bin/gotak-client \
+    ./cmd/gotak-client
+
+# Build migration tool
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -o bin/migrate \
+    ./cmd/migrate
+
+# Final test image
+FROM alpine:3.18
+
+# Install runtime dependencies
+RUN apk --no-cache add \
+    ca-certificates \
+    tzdata \
+    wget \
+    curl \
+    postgresql-client \
+    && rm -rf /var/cache/apk/*
+
+# Create app user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copy built binaries
+COPY --from=builder /app/bin/gotak-server .
+COPY --from=builder /app/bin/gotak-client .
+COPY --from=builder /app/bin/migrate .
+
+# Copy configuration and migration files
+COPY --from=builder /app/config ./config
+COPY --from=builder /app/migrations ./migrations
+
+# Copy test data and scripts
+COPY test-data ./test-data
+COPY scripts/test-setup.sh ./scripts/
+
+# Create cache directory
+RUN mkdir -p /app/cache/tiles && \
+    chown -R appuser:appgroup /app
+
+# Health check
+COPY scripts/healthcheck.sh ./
+RUN chmod +x ./healthcheck.sh
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 8080 8087 8089
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD ./healthcheck.sh
+
+# Default command
+CMD ["./gotak-server", "-config", "/app/config/test.yaml"]

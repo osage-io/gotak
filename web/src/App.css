@@ -1,0 +1,368 @@
+/* App.css - Main application styles */
+
+:root {
+  /* Color Variables */
+  --background-color: #1a1a1a;
+  --surface-color: #2d2d2d;
+  --surface-variant: #333333;
+  --border-color: #444444;
+  --text-color: #e0e0e0;
+  --text-secondary: #cccccc;
+  --text-tertiary: #888888;
+  --text-disabled: #666666;
+  
+  /* Primary Colors */
+  --primary-color: #2563eb;
+  --primary-hover: #3b82f6;
+  --success-color: #00ff88;
+  --warning-color: #ffaa00;
+  --danger-color: #ff4444;
+  --danger-hover: #cc3333;
+  
+  /* Interactive Colors */
+  --hover-color: #404040;
+  --selected-color: #004d26;
+  
+  /* Typography */
+  --font-family: 'Roboto', 'Arial', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  font-family: 'Roboto', 'Arial', sans-serif;
+}
+
+/* App Header */
+.app-header {
+  background-color: #2d2d2d;
+  border-bottom: 2px solid #444;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  position: relative;
+}
+
+.app-header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+
+.app-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.status-badge {
+  background-color: #004d26;
+  color: #00ff88;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid #00cc6a;
+}
+
+.selected-entity {
+  color: #00aaff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Main Content */
+.app-main {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Map Controls */
+.map-controls {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1002;
+  background: rgba(45, 45, 45, 0.95);
+  padding: 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+  border: 1px solid #444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #e5e5e5;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.control-btn:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.control-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: white;
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+}
+
+.main-map {
+  height: 100%;
+  width: 100%;
+}
+
+/* Entity Details Panel */
+.entity-details-panel {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 320px;
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.panel-header {
+  background-color: #333;
+  padding: 12px 16px;
+  border-bottom: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #cccccc;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.close-button:hover {
+  background-color: #444;
+  color: #ffffff;
+}
+
+.panel-content {
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #333;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cccccc;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.detail-row span {
+  font-size: 13px;
+  color: #ffffff;
+  text-align: right;
+  flex: 1;
+}
+
+.coordinates {
+  font-family: monospace !important;
+  font-size: 12px !important;
+  color: #00aaff !important;
+}
+
+.affiliation {
+  font-weight: 600 !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-size: 11px !important;
+}
+
+.affiliation.friendly {
+  background-color: #004d26 !important;
+  color: #00ff88 !important;
+  border: 1px solid #00cc6a;
+}
+
+.affiliation.hostile {
+  background-color: #4d1a1a !important;
+  color: #ff4444 !important;
+  border: 1px solid #cc3333;
+}
+
+.affiliation.neutral {
+  background-color: #4d3300 !important;
+  color: #ffaa00 !important;
+  border: 1px solid #cc8800;
+}
+
+.affiliation.unknown {
+  background-color: #333 !important;
+  color: #888888 !important;
+  border: 1px solid #666666;
+}
+
+/* Entity type styling */
+.entity-type {
+  font-weight: bold !important;
+}
+
+.entity-type.friendly {
+  color: #00ff88 !important;
+}
+
+.entity-type.hostile {
+  color: #ff4444 !important;
+}
+
+.entity-type.unknown {
+  color: #ffaa00 !important;
+}
+
+/* Status badge enhancements */
+.status-badge.active {
+  background-color: #004d26 !important;
+  color: #00ff88 !important;
+  border: 1px solid #00cc6a !important;
+}
+
+.status-badge.stale {
+  background-color: #4d1a1a !important;
+  color: #ff4444 !important;
+  border: 1px solid #cc3333 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 8px 12px;
+  }
+  
+  .app-header h1 {
+    font-size: 16px;
+  }
+  
+  .app-status {
+    gap: 8px;
+  }
+  
+  .status-badge {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+  
+  .selected-entity {
+    font-size: 12px;
+  }
+  
+  .entity-details-panel {
+    top: 60px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+  
+  .panel-content {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .app-status {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .entity-details-panel {
+    top: 80px;
+  }
+}
+
+/* Scrollbar styling for webkit browsers */
+.panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+  background: #333;
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}

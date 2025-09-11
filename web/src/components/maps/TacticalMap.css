@@ -1,0 +1,916 @@
+/* Tactical Map Styles */
+.tactical-map-container {
+  position: relative;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.tactical-map {
+  position: relative;
+  z-index: 1;
+}
+
+/* Layer Controls */
+.map-layer-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  background: rgba(26, 26, 26, 0.9);
+  border-radius: 4px;
+  padding: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.layer-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #e5e5e5;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.layer-btn:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.layer-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.layer-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Status Display */
+.map-status-display {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1001;
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #e5e5e5;
+  backdrop-filter: blur(4px);
+  min-width: 180px;
+}
+
+.map-status-display > div {
+  margin: 2px 0;
+}
+
+.connection-status.connected {
+  color: #22c55e !important;
+  font-weight: bold;
+}
+
+.connection-status.disconnected {
+  color: #ef4444 !important;
+  font-weight: bold;
+}
+
+.entity-count {
+  color: #60a5fa !important;
+  font-weight: bold;
+}
+
+.loading-status {
+  color: #f59e0b !important;
+  font-style: italic;
+}
+
+.error-status {
+  color: #ef4444 !important;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+/* Coordinate Display */
+.map-coordinate-display {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #e5e5e5;
+  backdrop-filter: blur(4px);
+  min-width: 200px;
+}
+
+.map-coordinate-display div {
+  margin: 2px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.current-center {
+  font-weight: bold;
+  color: #22c55e;
+}
+
+.mouse-position {
+  color: #60a5fa;
+}
+
+.zoom-level {
+  color: #f59e0b;
+  border-top: 1px solid #333;
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+/* Tactical Overlays */
+.tactical-overlays {
+  position: absolute;
+  top: 60px;
+  left: 10px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overlay-control {
+  background: rgba(26, 26, 26, 0.9);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px;
+  backdrop-filter: blur(4px);
+  color: #e5e5e5;
+}
+
+.overlay-control h4 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  font-weight: bold;
+  color: #f59e0b;
+}
+
+.overlay-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  margin: 2px 0;
+}
+
+.overlay-toggle input[type="checkbox"] {
+  margin: 0;
+}
+
+/* Entity Markers */
+.entity-marker {
+  background: transparent !important;
+  border: none !important;
+  text-align: center;
+}
+
+.marker-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.marker-icon {
+  font-size: 20px;
+  font-weight: bold;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  margin-bottom: 2px;
+}
+
+.marker-label {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  text-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Entity marker types */
+.entity-marker.friendly .marker-icon {
+  color: #22c55e;
+}
+
+.entity-marker.friendly .marker-label {
+  background: rgba(34, 197, 94, 0.8);
+  color: white;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.entity-marker.hostile .marker-icon {
+  color: #ef4444;
+}
+
+.entity-marker.hostile .marker-label {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.entity-marker.unknown .marker-icon {
+  color: #f59e0b;
+}
+
+.entity-marker.unknown .marker-label {
+  background: rgba(245, 158, 11, 0.8);
+  color: black;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.entity-marker.stale {
+  opacity: 0.5;
+}
+
+.entity-marker.stale .marker-icon {
+  color: #6b7280 !important;
+}
+
+.entity-marker.stale .marker-label {
+  background: rgba(107, 114, 128, 0.8) !important;
+  color: white !important;
+  border-color: rgba(107, 114, 128, 0.5) !important;
+}
+
+/* Entity Popup Styles */
+.entity-popup {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  min-width: 200px;
+}
+
+.entity-popup h3 {
+  margin: 0 0 8px 0;
+  color: #60a5fa;
+  font-size: 14px;
+  font-weight: bold;
+  border-bottom: 1px solid #333;
+  padding-bottom: 4px;
+}
+
+.entity-info {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.entity-info > div {
+  margin: 4px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.entity-info strong {
+  color: #f59e0b;
+  min-width: 70px;
+  flex-shrink: 0;
+}
+
+.entity-info .status {
+  margin-top: 6px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 11px;
+  text-align: center;
+  justify-content: center;
+}
+
+.entity-info .status.active {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+.entity-info .status.stale {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+/* Position Markers (Legacy) */
+.tactical-marker {
+  position: relative;
+}
+
+.tactical-marker.friendly {
+  filter: hue-rotate(120deg); /* Green tint */
+}
+
+.tactical-marker.hostile {
+  filter: hue-rotate(0deg) saturate(1.5); /* Red tint */
+}
+
+.tactical-marker.neutral {
+  filter: grayscale(0.5); /* Gray tint */
+}
+
+.tactical-marker.unknown {
+  filter: hue-rotate(60deg); /* Yellow tint */
+}
+
+/* Unit Info Popup */
+.unit-popup {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  min-width: 200px;
+}
+
+.unit-popup .unit-header {
+  font-weight: bold;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #333;
+}
+
+.unit-popup .unit-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  font-size: 11px;
+}
+
+.unit-popup .unit-details .label {
+  font-weight: bold;
+  color: #f59e0b;
+}
+
+.unit-popup .unit-details .value {
+  color: #e5e5e5;
+}
+
+/* Drawing Controls */
+.drawing-controls {
+  position: absolute;
+  top: 10px;
+  right: 60px;
+  z-index: 1000;
+  display: flex;
+  gap: 4px;
+  background: rgba(26, 26, 26, 0.9);
+  border-radius: 4px;
+  padding: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.drawing-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #e5e5e5;
+  padding: 6px;
+  border-radius: 3px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drawing-btn:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.drawing-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.drawing-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Measurement Tools */
+.measurement-display {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  color: #e5e5e5;
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+/* Tactical Symbols */
+.tactical-symbol {
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.tactical-symbol.friendly {
+  filter: hue-rotate(120deg) brightness(1.2);
+}
+
+.tactical-symbol.hostile {
+  filter: hue-rotate(0deg) saturate(1.5) brightness(1.1);
+}
+
+.tactical-symbol.neutral {
+  filter: grayscale(0.8) brightness(0.9);
+}
+
+.tactical-symbol.unknown {
+  filter: hue-rotate(60deg) brightness(1.1);
+}
+
+/* Threat Circles */
+.threat-circle {
+  fill: none;
+  stroke-width: 2;
+  stroke-dasharray: 5,5;
+  opacity: 0.7;
+}
+
+.threat-circle.engagement {
+  stroke: #ef4444;
+}
+
+.threat-circle.detection {
+  stroke: #f59e0b;
+}
+
+.threat-circle.communication {
+  stroke: #3b82f6;
+}
+
+/* Mission Graphics */
+.mission-boundary {
+  fill: rgba(34, 197, 94, 0.1);
+  stroke: #22c55e;
+  stroke-width: 2;
+  stroke-dasharray: 10,5;
+}
+
+.route-line {
+  stroke: #60a5fa;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.waypoint {
+  fill: #60a5fa;
+  stroke: #1e40af;
+  stroke-width: 2;
+}
+
+/* Leaflet Overrides for Dark Theme */
+.leaflet-control-layers,
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+  background-color: rgba(26, 26, 26, 0.9) !important;
+  color: #e5e5e5 !important;
+  border: 1px solid #333 !important;
+}
+
+.leaflet-control-layers label {
+  color: #e5e5e5 !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: rgba(26, 26, 26, 0.9) !important;
+  border: 1px solid #333 !important;
+  color: #e5e5e5 !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: rgba(51, 51, 51, 0.9) !important;
+  border-color: #555 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #1a1a1a !important;
+  color: #e5e5e5 !important;
+  border: 1px solid #333 !important;
+}
+
+.leaflet-popup-tip {
+  background-color: #1a1a1a !important;
+  border: 1px solid #333 !important;
+}
+
+.leaflet-tooltip {
+  background-color: rgba(26, 26, 26, 0.95) !important;
+  border: 1px solid #333 !important;
+  color: #e5e5e5 !important;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  font-size: 12px !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .map-layer-controls {
+    flex-direction: column;
+    top: 60px;
+    right: 10px;
+    left: auto;
+  }
+  
+  .map-coordinate-display {
+    bottom: 60px;
+    right: 10px;
+    font-size: 10px;
+    min-width: 150px;
+  }
+  
+  .drawing-controls {
+    top: 10px;
+    right: 10px;
+    flex-direction: column;
+  }
+  
+  .tactical-overlays {
+    position: static;
+    margin: 10px;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .layer-btn {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .map-coordinate-display {
+    position: static;
+    margin: 10px;
+    order: -1;
+  }
+  
+  .tactical-map-container {
+    flex-direction: column;
+  }
+}
+
+/* Advanced Mapping Controls */
+.map-advanced-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(26, 26, 26, 0.95);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  backdrop-filter: blur(4px);
+  max-width: 320px;
+}
+
+.routing-controls,
+.geofencing-controls,
+.measurement-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.control-btn {
+  background: #333;
+  border: 1px solid #555;
+  color: #e5e5e5;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.control-btn:hover {
+  background: #444;
+  border-color: #666;
+}
+
+.control-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.control-btn.clear-btn {
+  background: #7f1d1d;
+  border-color: #991b1b;
+  color: #fecaca;
+}
+
+.control-btn.clear-btn:hover {
+  background: #991b1b;
+  border-color: #b91c1c;
+}
+
+.waypoint-count {
+  font-size: 10px;
+  color: #9ca3af;
+  background: rgba(75, 85, 99, 0.5);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+/* Drawing Status */
+.map-drawing-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1001;
+  background: rgba(37, 99, 235, 0.95);
+  border: 1px solid #3b82f6;
+  color: white;
+  padding: 16px 20px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 300px;
+  backdrop-filter: blur(4px);
+}
+
+.drawing-instructions {
+  margin-bottom: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.cancel-drawing-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancel-drawing-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Completion Dialogs */
+.map-completion-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1002;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.completion-content {
+  padding: 20px;
+}
+
+.completion-content h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f59e0b;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.completion-details {
+  background: rgba(51, 51, 51, 0.3);
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #e5e5e5;
+}
+
+.completion-details > div {
+  margin-bottom: 4px;
+  color: #d1d5db;
+}
+
+.completion-details > div:last-child {
+  margin-bottom: 0;
+}
+
+.completion-inputs {
+  margin-bottom: 20px;
+}
+
+.completion-inputs input,
+.completion-inputs textarea {
+  width: 100%;
+  padding: 8px 10px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #e5e5e5;
+  font-size: 13px;
+  font-family: inherit;
+  margin-bottom: 8px;
+  transition: border-color 0.2s ease;
+}
+
+.completion-inputs input:focus,
+.completion-inputs textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.completion-inputs textarea {
+  resize: vertical;
+  min-height: 70px;
+  font-family: inherit;
+}
+
+.completion-inputs input::placeholder,
+.completion-inputs textarea::placeholder {
+  color: #9ca3af;
+}
+
+.completion-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  border-color: #2563eb;
+}
+
+.btn-secondary {
+  background: #374151;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+/* Enhanced coordinate display with mapping stats */
+.mapping-stats {
+  border-top: 1px solid #333;
+  padding-top: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.mapping-stats > div {
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.mapping-stats > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Custom measurement tooltip */
+.measurement-tooltip {
+  background: rgba(0, 0, 0, 0.9) !important;
+  color: #22c55e !important;
+  border: 1px solid #333 !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  padding: 4px 6px !important;
+  white-space: nowrap !important;
+}
+
+.measurement-tooltip:before {
+  border-top-color: rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Route and geofence styling */
+.route-polyline {
+  stroke: #60a5fa !important;
+  stroke-width: 4px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  fill: none !important;
+}
+
+.geofence-circle {
+  stroke: #f59e0b !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 8,4 !important;
+  fill: rgba(245, 158, 11, 0.1) !important;
+}
+
+.geofence-polygon,
+.geofence-rectangle {
+  stroke: #ef4444 !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 8,4 !important;
+  fill: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* Responsive adjustments for advanced controls */
+@media (max-width: 768px) {
+  .map-advanced-controls {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    max-width: none;
+    padding: 10px;
+  }
+  
+  .routing-controls,
+  .geofencing-controls,
+  .measurement-controls {
+    justify-content: center;
+  }
+  
+  .control-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    padding: 6px 8px;
+  }
+  
+  .map-completion-dialog {
+    width: 95vw;
+    max-width: none;
+  }
+  
+  .completion-content {
+    padding: 15px;
+  }
+  
+  .map-drawing-status {
+    min-width: 250px;
+    padding: 12px 16px;
+  }
+}
