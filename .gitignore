@@ -99,6 +99,21 @@ celerybeat.pid
 .dmypy.json
 dmypy.json
 
+# Go specific
+bin/
+*.exe
+gotak-server
+gotak-client
+migrate
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+web/dist/
+web/.vite/
+
 # Security and sensitive files
 *.secret
 *.classified
@@ -112,3 +127,8 @@ temp/
 *.tmp
 *.bak
 *.backup
+
+# Build artifacts and releases
+build/
+release/
+dist/
