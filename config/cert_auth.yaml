@@ -1,0 +1,225 @@
+# Certificate Authentication Configuration
+# This configuration file defines settings for X.509 certificate-based authentication
+# including CAC (Common Access Card) and PIV (Personal Identity Verification) support
+
+certificate_auth:
+  # Enable certificate authentication
+  enabled: true
+
+  # Require mutual TLS for certificate authentication
+  require_mutual_tls: true
+
+  # Certificate validation settings
+  validation:
+    # Require valid certificate chain
+    require_valid_chain: true
+    
+    # Check certificate revocation status (CRL/OCSP)
+    check_revocation: true
+    
+    # Allow expired certificates (for testing/development only)
+    allow_expired_certs: false
+    
+    # Maximum certificate chain length
+    max_chain_length: 10
+    
+    # Clock skew tolerance (for time validation)
+    clock_skew_tolerance: "5m"
+    
+    # Enable strict validation (additional checks)
+    enable_strict_validation: true
+    
+    # Revocation check cache timeout
+    revocation_cache_timeout: "1h"
+
+  # Certificate extraction settings
+  extraction:
+    # Attribute to use as user ID (CN, serialNumber, emailAddress, upn)
+    user_id_attribute: "CN"
+    
+    # Regex pattern to extract user ID from attribute value
+    # Example: "^([^@]+)@.*" to extract username from email
+    user_id_pattern: ""
+    
+    # Required key usages for authentication certificates
+    required_key_usages:
+      - "digital_signature"
+    
+    # Required extended key usages
+    required_ext_key_usages:
+      - "client_auth"
+    
+    # Attribute mappings (map certificate attributes to user attributes)
+    attribute_mappings:
+      CN: "common_name"
+      O: "organization" 
+      OU: "organizational_unit"
+      C: "country"
+      L: "locality"
+      ST: "state_province"
+      emailAddress: "email"
+
+  # CAC (Common Access Card) specific configuration
+  cac:
+    # Enable CAC certificate support
+    enabled: true
+    
+    # Extract FASC-N (Federal Agency Smart Credential Number)
+    extract_fascn: true
+    
+    # Extract Card UUID
+    extract_uuid: true
+    
+    # Extract CHUID (Card Holder Unique Identifier)
+    extract_chuid: true
+
+  # PIV (Personal Identity Verification) specific configuration  
+  piv:
+    # Enable PIV certificate support
+    enabled: true
+    
+    # Extract PIV Card UUID
+    extract_card_uuid: true
+    
+    # Extract PIV expiration date
+    extract_expiration_date: true
+
+  # TLS configuration for mutual TLS
+  tls:
+    # Server certificate and key for TLS
+    cert_file: "/etc/gotak/certs/server.crt"
+    key_file: "/etc/gotak/certs/server.key"
+    
+    # Client CA certificates for mutual TLS
+    client_ca_file: "/etc/gotak/certs/client-ca.crt"
+    
+    # Additional client CA certificate directory
+    client_ca_dir: "/etc/gotak/certs/client-cas/"
+    
+    # TLS version requirements
+    min_tls_version: "1.2"
+    max_tls_version: "1.3"
+    
+    # Cipher suite preferences (TLS 1.2)
+    cipher_suites:
+      - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+      - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+      - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+      - "TLS_RSA_WITH_AES_256_GCM_SHA384"
+      - "TLS_RSA_WITH_AES_128_GCM_SHA256"
+    
+    # Client certificate verification mode
+    client_auth: "require_and_verify_client_cert"
+
+  # Trusted Certificate Authorities
+  trusted_cas:
+    # DoD Root CA certificates
+    - name: "DoD Root CA 2"
+      file: "/etc/gotak/certs/dod-root-ca-2.crt"
+      description: "Department of Defense Root Certificate Authority 2"
+      
+    - name: "DoD Root CA 3" 
+      file: "/etc/gotak/certs/dod-root-ca-3.crt"
+      description: "Department of Defense Root Certificate Authority 3"
+    
+    # Federal Common Policy CA
+    - name: "Federal Common Policy CA"
+      file: "/etc/gotak/certs/federal-common-policy-ca.crt"
+      description: "Federal Common Policy Certification Authority"
+    
+    # Custom enterprise CAs can be added here
+    - name: "Enterprise Root CA"
+      file: "/etc/gotak/certs/enterprise-root-ca.crt"
+      description: "Enterprise Root Certificate Authority"
+      enabled: false
+
+  # Certificate Revocation List (CRL) settings
+  crl:
+    # Enable CRL checking
+    enabled: true
+    
+    # CRL cache timeout
+    cache_timeout: "4h"
+    
+    # CRL download timeout
+    download_timeout: "30s"
+    
+    # CRL update interval
+    update_interval: "1h"
+    
+    # Local CRL directory for offline CRL files
+    local_crl_dir: "/etc/gotak/crl/"
+
+  # Online Certificate Status Protocol (OCSP) settings  
+  ocsp:
+    # Enable OCSP checking
+    enabled: true
+    
+    # OCSP response cache timeout
+    cache_timeout: "1h"
+    
+    # OCSP request timeout
+    request_timeout: "10s"
+    
+    # Allow OCSP nonce extension
+    allow_nonce: true
+    
+    # Require OCSP stapling
+    require_stapling: false
+
+  # Certificate enrollment settings
+  enrollment:
+    # Enable certificate enrollment
+    enabled: true
+    
+    # Require administrator approval for new certificates
+    require_admin_approval: true
+    
+    # Automatically enroll certificates from trusted CAs
+    auto_enroll_trusted_cas: false
+    
+    # Certificate enrollment notification settings
+    notifications:
+      email_enabled: false
+      webhook_enabled: false
+      webhook_url: ""
+
+  # Audit and logging settings
+  audit:
+    # Log all certificate authentication events
+    log_auth_events: true
+    
+    # Log certificate enrollment events  
+    log_enrollment_events: true
+    
+    # Log certificate validation failures
+    log_validation_failures: true
+    
+    # Include certificate details in logs
+    include_cert_details: false
+    
+    # Audit log file
+    audit_log_file: "/var/log/gotak/cert-auth-audit.log"
+
+# Example government CA fingerprints (these should be updated with actual values)
+government_ca_fingerprints:
+  - "8C941B34EA1EA6ED9AE2BC54CF687252B4C9B561A6D2A9A7C7F5A0B0E05D3E5F"  # DoD Root CA 2
+  - "4F69A3A6C4321A5BE5B8C4CD4A6E8F82C1D5F29A8B3D7C1A8B9E1F5C3D9A6E8F"  # DoD Root CA 3
+  - "7D7B5B9A8F3E2D1C5A4B6E9F8D7C5A4B3E2D1C9F8E7D6C5B4A3E2D1C9F8E7D"  # Federal Common Policy CA
+
+# Development and testing settings
+development:
+  # Allow self-signed certificates (development only)
+  allow_self_signed: false
+  
+  # Skip certificate chain validation (testing only)
+  skip_chain_validation: false
+  
+  # Skip revocation checking (development only)
+  skip_revocation_check: false
+  
+  # Generate test certificates
+  generate_test_certs: false
+  
+  # Test certificate directory
+  test_cert_dir: "/tmp/gotak-test-certs/"

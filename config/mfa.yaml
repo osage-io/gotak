@@ -4,7 +4,7 @@
 mfa:
   # Global MFA settings
   enabled: true
-  required_types: ["totp"]  # Require TOTP by default, can add "sms", "email", "webauthn"
+  required_types: ["totp", "webauthn"]  # Require TOTP and WebAuthn for strong security
   challenge_lifetime: 5m    # How long MFA challenges remain valid
   enrollment_lifetime: 15m  # How long enrollment sessions remain valid
   max_failed_attempts: 3    # Maximum failed attempts before lockout
@@ -50,15 +50,14 @@ mfa:
 
   # WebAuthn/FIDO2 configuration
   webauthn:
-    enabled: false            # Disabled by default - requires HTTPS and proper setup
-    relying_party_id: "gotak.local"
-    relying_party_name: "GoTAK Tactical Platform"
-    origin: "https://gotak.local"
-    timeout: 60s
-    authenticator_selection:
-      authenticator_attachment: "platform"  # platform, cross-platform, or omit
-      user_verification: "preferred"        # required, preferred, discouraged
-      require_resident_key: false
+    enabled: true             # Enable WebAuthn/FIDO2 support
+    rp_id: "gotak.local"      # Relying Party ID (must match domain)
+    rp_name: "GoTAK Tactical Platform"  # Relying Party Name
+    origin: "https://gotak.local"        # Expected origin for WebAuthn
+    timeout: 60s              # Challenge timeout
+    require_resident_key: false          # Whether to require resident keys
+    user_verification: "preferred"       # preferred, required, discouraged
+    attestation: "none"       # none, indirect, direct
 
 # Security policies for different user roles
 security_policies:

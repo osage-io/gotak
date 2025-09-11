@@ -4,7 +4,6 @@ package mfa
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -139,16 +138,17 @@ type EnrollmentSession struct {
 
 // MFAChallenge represents a single MFA challenge for one factor
 type MFAChallenge struct {
-	ID         uuid.UUID       `json:"id"`
-	FactorID   uuid.UUID       `json:"factor_id"`
-	Type       MFAType         `json:"type"`
-	Status     ChallengeStatus `json:"status"`
-	Challenge  string          `json:"challenge,omitempty"` // Challenge data (e.g., SMS code)
-	Attempts   int             `json:"attempts"`
-	MaxAttempts int            `json:"max_attempts"`
-	ExpiresAt  time.Time       `json:"expires_at"`
-	CreatedAt  time.Time       `json:"created_at"`
-	VerifiedAt *time.Time      `json:"verified_at,omitempty"`
+	ID         uuid.UUID         `json:"id"`
+	FactorID   uuid.UUID         `json:"factor_id"`
+	Type       MFAType           `json:"type"`
+	Status     ChallengeStatus   `json:"status"`
+	Challenge  string            `json:"challenge,omitempty"` // Challenge data (e.g., SMS code)
+	Attempts   int               `json:"attempts"`
+	MaxAttempts int              `json:"max_attempts"`
+	Metadata   map[string]string `json:"metadata,omitempty"`   // Provider-specific metadata
+	ExpiresAt  time.Time         `json:"expires_at"`
+	CreatedAt  time.Time         `json:"created_at"`
+	VerifiedAt *time.Time        `json:"verified_at,omitempty"`
 }
 
 // AuthChallenge represents a complete authentication challenge that may require multiple factors
@@ -216,12 +216,14 @@ type EmailConfig struct {
 
 // WebAuthnConfig defines configuration for WebAuthn/FIDO2 authentication
 type WebAuthnConfig struct {
-	Enabled         bool     `yaml:"enabled" json:"enabled"`
-	RelyingPartyID  string   `yaml:"relying_party_id" json:"relying_party_id"`
-	RelyingPartyName string  `yaml:"relying_party_name" json:"relying_party_name"`
-	Origin          string   `yaml:"origin" json:"origin"`
-	Timeout         time.Duration `yaml:"timeout" json:"timeout"`
-	AuthenticatorSelection json.RawMessage `yaml:"authenticator_selection" json:"authenticator_selection"`
+	Enabled  bool          `yaml:"enabled" json:"enabled"`
+	RPID     string        `yaml:"rp_id" json:"rp_id"`           // Relying Party ID
+	RPName   string        `yaml:"rp_name" json:"rp_name"`       // Relying Party Name
+	Origin   string        `yaml:"origin" json:"origin"`         // Expected origin for WebAuthn
+	Timeout  time.Duration `yaml:"timeout" json:"timeout"`       // Challenge timeout
+	RequireResidentKey bool `yaml:"require_resident_key" json:"require_resident_key"`
+	UserVerification   string `yaml:"user_verification" json:"user_verification"` // preferred, required, discouraged
+	Attestation        string `yaml:"attestation" json:"attestation"`                 // none, indirect, direct
 }
 
 // MFAStorage defines the interface for persisting MFA data
