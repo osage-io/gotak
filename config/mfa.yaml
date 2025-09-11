@@ -1,0 +1,213 @@
+# Multi-Factor Authentication Configuration for GoTAK
+# Sprint 10: Security & Compliance Framework
+
+mfa:
+  # Global MFA settings
+  enabled: true
+  required_types: ["totp"]  # Require TOTP by default, can add "sms", "email", "webauthn"
+  challenge_lifetime: 5m    # How long MFA challenges remain valid
+  enrollment_lifetime: 15m  # How long enrollment sessions remain valid
+  max_failed_attempts: 3    # Maximum failed attempts before lockout
+  lockout_duration: 15m     # How long to lock out after max failures
+
+  # Backup codes configuration
+  backup_codes_enabled: true
+  backup_codes_count: 10    # Number of backup codes to generate
+  backup_codes_length: 8    # Length of each backup code
+
+  # Time-based One-Time Password (TOTP) configuration
+  totp:
+    enabled: true
+    issuer: "GoTAK Tactical Platform"
+    algorithm: "SHA1"         # SHA1, SHA256, SHA512
+    digits: 6                 # 6 or 8 digit codes
+    period: 30                # Time step in seconds
+    skew: 1                   # Number of time steps to allow for clock drift
+
+  # SMS-based MFA configuration
+  sms:
+    enabled: false            # Disabled by default - requires SMS provider setup
+    provider: "twilio"        # twilio, aws-sns, custom
+    template: "Your GoTAK verification code is: {{.Code}}. Valid for 5 minutes."
+    code_length: 6
+    code_ttl: 5m
+
+  # Email-based MFA configuration  
+  email:
+    enabled: false            # Disabled by default - requires email provider setup
+    provider: "smtp"          # smtp, aws-ses, custom
+    template: |
+      Subject: GoTAK Security Verification Code
+      
+      Your GoTAK verification code is: {{.Code}}
+      
+      This code is valid for 5 minutes. If you didn't request this code, please contact your system administrator immediately.
+      
+      Best regards,
+      GoTAK Security Team
+    code_length: 6
+    code_ttl: 5m
+
+  # WebAuthn/FIDO2 configuration
+  webauthn:
+    enabled: false            # Disabled by default - requires HTTPS and proper setup
+    relying_party_id: "gotak.local"
+    relying_party_name: "GoTAK Tactical Platform"
+    origin: "https://gotak.local"
+    timeout: 60s
+    authenticator_selection:
+      authenticator_attachment: "platform"  # platform, cross-platform, or omit
+      user_verification: "preferred"        # required, preferred, discouraged
+      require_resident_key: false
+
+# Security policies for different user roles
+security_policies:
+  # Admin users require MFA for all operations
+  admin_mfa_required:
+    enabled: true
+    required_roles: ["system:admin", "system:auditor"]
+    required_operations: ["*"]
+    required_mfa_types: ["totp"]
+
+  # Tactical commanders require MFA for sensitive operations
+  commander_mfa_required:
+    enabled: true
+    required_roles: ["tactical:commander"]
+    required_operations: ["missions:delete", "users:*", "security:*"]
+    required_mfa_types: ["totp"]
+
+  # Time-based access restrictions
+  business_hours_only:
+    enabled: false            # Disabled by default
+    allowed_hours:
+      start: 6                # 6 AM
+      end: 18                 # 6 PM
+    timezone: "UTC"
+    exceptions: ["system:admin"] # Roles that can access 24/7
+
+  # IP address restrictions
+  ip_whitelist:
+    enabled: false            # Disabled by default
+    allowed_networks:
+      - "10.0.0.0/8"         # Private network ranges
+      - "192.168.0.0/16"
+      - "172.16.0.0/12"
+    exceptions: ["system:admin"] # Roles that can access from anywhere
+
+# Audit and logging configuration
+audit:
+  # MFA event logging
+  mfa_events:
+    enabled: true
+    log_level: "info"         # debug, info, warn, error
+    include_metadata: true    # Include request metadata in logs
+    retention_days: 90        # How long to keep MFA audit logs
+
+  # Security events logging  
+  security_events:
+    enabled: true
+    log_level: "info"
+    include_stack_traces: false # Include stack traces for errors
+    retention_days: 365       # How long to keep security audit logs
+
+  # Failed authentication tracking
+  failed_auth_tracking:
+    enabled: true
+    threshold: 5              # Number of failures before generating alert
+    window: 15m               # Time window for counting failures
+    alert_admins: true        # Send alerts to administrators
+
+# Integration settings
+integrations:
+  # SIEM integration
+  siem:
+    enabled: false            # Disabled by default
+    endpoint: ""              # SIEM webhook/API endpoint
+    format: "json"            # json, cef, leef
+    batch_size: 100           # Events to batch before sending
+    flush_interval: 30s       # How often to flush events
+
+  # External identity providers
+  external_idp:
+    enabled: false            # Disabled by default
+    providers: []             # External OIDC/SAML providers
+
+# Advanced security settings
+advanced:
+  # Encryption settings
+  encryption:
+    # Key derivation settings
+    pbkdf2_iterations: 100000 # PBKDF2 iterations for key derivation
+    salt_length: 32          # Salt length in bytes
+    
+    # Encryption algorithms
+    symmetric_algorithm: "AES-256-GCM"
+    key_size: 32             # Key size in bytes (256 bits)
+    
+    # Key rotation
+    auto_rotation: true      # Automatically rotate encryption keys
+    rotation_interval: 90d   # How often to rotate keys
+    
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    enrollment_rate: "5/hour"    # Max 5 enrollments per hour per user
+    challenge_rate: "20/hour"    # Max 20 challenges per hour per user
+    verification_rate: "100/hour" # Max 100 verifications per hour per user
+    
+  # Session security
+  session_security:
+    require_mfa_reauth: true     # Require MFA for re-authentication
+    mfa_session_lifetime: 8h     # How long MFA verification lasts
+    absolute_session_timeout: 24h # Maximum session length regardless of activity
+    
+  # Certificate validation (for X.509 auth)
+  certificate_validation:
+    enabled: true
+    check_revocation: true       # Check certificate revocation lists
+    ocsp_enabled: true          # Use OCSP for real-time revocation checking
+    require_client_cert: false  # Require client certificates for all users
+    trusted_ca_file: ""         # Path to trusted CA certificates
+    
+# Development and testing settings (DO NOT USE IN PRODUCTION)
+development:
+  enabled: false              # Must be explicitly enabled for development
+  
+  # Relaxed security for development
+  allow_insecure_connections: false # Allow HTTP for WebAuthn (DEV ONLY)
+  skip_certificate_validation: false # Skip cert validation (DEV ONLY)
+  test_mode: false            # Enable test endpoints and utilities
+  
+  # Mock providers for testing
+  mock_sms_provider: false    # Use mock SMS provider
+  mock_email_provider: false # Use mock email provider
+  
+  # Reduced security requirements for testing
+  min_password_length: 8      # Minimum password length (prod should be 12+)
+  allow_weak_passwords: false # Allow weak passwords (DEV ONLY)
+  
+# Compliance settings
+compliance:
+  # NIST 800-53 compliance
+  nist_800_53:
+    enabled: true
+    impact_level: "moderate"    # low, moderate, high
+    controls:
+      - "AC-2"                  # Account Management
+      - "AC-3"                  # Access Enforcement
+      - "AC-7"                  # Unsuccessful Logon Attempts
+      - "AU-2"                  # Event Logging
+      - "IA-2"                  # Identification and Authentication
+      - "IA-5"                  # Authenticator Management
+      
+  # FISMA compliance
+  fisma:
+    enabled: true
+    categorization: "moderate"  # low, moderate, high
+    boundary: "system"          # system, enclave, application
+    
+  # DoD specific requirements
+  dod:
+    enabled: false              # Enable for DoD deployments
+    stig_compliance: false      # Apply STIG hardening requirements
+    cac_piv_required: false     # Require CAC/PIV authentication
