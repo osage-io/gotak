@@ -10,6 +10,11 @@ VERSION=1.0.0
 BUILD_TIME=$(shell date +%Y-%m-%dT%H:%M:%S%z)
 GIT_COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
+# Docker Hub settings (override with DOCKERHUB_USERNAME=youruser make docker-push)
+DOCKERHUB_USERNAME ?= dfedick
+SERVER_IMAGE_NAME=$(DOCKERHUB_USERNAME)/gotak-server
+WEB_IMAGE_NAME=$(DOCKERHUB_USERNAME)/gotak-web
+
 # Go parameters
 GOCMD=go
 GOBUILD=$(GOCMD) build
@@ -197,6 +202,23 @@ docker-push-nomad: docker-build-nomad ## Push Docker images for Nomad
 	@docker push gotak/server:latest
 	@docker push gotak/web:$(VERSION)
 	@docker push gotak/web:latest
+
+docker-build-hub: ## Build Docker images for DockerHub
+	@echo "Building GoTAK images for DockerHub..."
+	@docker build --build-arg VERSION=$(VERSION) --build-arg BUILD_TIME=$(BUILD_TIME) --build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		-t $(SERVER_IMAGE_NAME):$(VERSION) -t $(SERVER_IMAGE_NAME):latest .
+	@docker build -t $(WEB_IMAGE_NAME):$(VERSION) -t $(WEB_IMAGE_NAME):latest ./web
+	@echo "DockerHub images built:"
+	@echo "  $(SERVER_IMAGE_NAME):$(VERSION) and $(SERVER_IMAGE_NAME):latest"
+	@echo "  $(WEB_IMAGE_NAME):$(VERSION) and $(WEB_IMAGE_NAME):latest"
+
+docker-push-hub: docker-build-hub ## Build and push Docker images to DockerHub
+	@echo "Pushing GoTAK images to DockerHub as $(DOCKERHUB_USERNAME)..."
+	@docker push $(SERVER_IMAGE_NAME):$(VERSION)
+	@docker push $(SERVER_IMAGE_NAME):latest
+	@docker push $(WEB_IMAGE_NAME):$(VERSION)
+	@docker push $(WEB_IMAGE_NAME):latest
+	@echo "Images pushed successfully to DockerHub!"
 
 docker-run: docker-build ## Run Docker container
 	@echo "Running Docker container..."
