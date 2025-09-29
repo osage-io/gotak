@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gotak
+  labels:
+    name: gotak
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: tactical-awareness
+---

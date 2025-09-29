@@ -24,11 +24,11 @@ server:
   keepalive_interval: 30s
 
 database:
-  host: "localhost"
+  host: "postgres"
   port: 5432
   database: "gotak"
   username: "gotak"
-  password: "changeme"
+  password: "tactical_secure_pass"
   ssl_mode: "disable"
   
   # Connection pool settings

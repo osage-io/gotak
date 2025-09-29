@@ -1,0 +1,28 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gotak-web-config
+  namespace: gotak
+  labels:
+    app.kubernetes.io/name: gotak-web
+    app.kubernetes.io/component: web-ui
+data:
+  # Backend connection settings
+  GOTAK_SERVER_URL: "ws://gotak-server:8087"
+  GOTAK_API_URL: "http://gotak-server:8080"
+  GOTAK_WS_URL: "ws://gotak-server:8087/ws"
+  
+  # Map configuration
+  MAP_DEFAULT_LAT: "38.9072"
+  MAP_DEFAULT_LNG: "-77.0369"
+  MAP_DEFAULT_ZOOM: "12"
+  MAP_MAX_ZOOM: "18"
+  MAP_MIN_ZOOM: "3"
+  
+  # Feature toggles
+  ENABLE_CHAT: "true"
+  ENABLE_DRAWING: "true"
+  ENABLE_MEASUREMENTS: "true"
+  ENABLE_GEOFENCING: "true"
+---

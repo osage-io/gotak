@@ -19,27 +19,14 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Development user for testing (will be replaced by proper auth in Sprint 2)
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Insert development test users
-INSERT INTO users (username, email) VALUES 
-    ('admin', 'admin@gotak.dev'),
-    ('operator', 'operator@gotak.dev'),
-    ('commander', 'commander@gotak.dev')
-ON CONFLICT (username) DO NOTHING;
+-- Users table will be created by migrations
+-- Development test users will be inserted by migrations or application startup
 
 -- Audit logging table
 CREATE TABLE IF NOT EXISTS audit.events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_time TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    user_id UUID REFERENCES users(id),
+    user_id UUID, -- Will reference users(id) after migrations create users table
     action VARCHAR(100) NOT NULL,
     resource VARCHAR(255),
     resource_id VARCHAR(255),

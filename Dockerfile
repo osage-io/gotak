@@ -1,6 +1,24 @@
 # Multi-stage Dockerfile for GoTAK Production Deployment
 
-# Build stage
+# Web build stage
+FROM node:20-alpine AS web-builder
+
+# Set working directory
+WORKDIR /web
+
+# Copy package files
+COPY web/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy web source code
+COPY web/ ./
+
+# Build the web application
+RUN npm run build
+
+# Go build stage
 FROM golang:1.23-alpine AS builder
 
 # Set working directory
@@ -20,10 +38,10 @@ COPY . .
 
 # Build the application
 ARG VERSION=1.0.0
-ARG BUILD_TIME
-ARG GIT_COMMIT
+ARG BUILD_TIME=dev
+ARG GIT_COMMIT=dev
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags "-w -s -X main.version=${VERSION} -X main.buildDate=${BUILD_TIME} -X main.commit=${GIT_COMMIT}" \
+    -ldflags "-w -s -X 'main.version=${VERSION}' -X 'main.buildDate=${BUILD_TIME}' -X 'main.commit=${GIT_COMMIT}'" \
     -o gotak-server ./cmd/gotak-server
 
 # Build client tools
@@ -41,6 +59,7 @@ RUN apk add --no-cache \
     curl \
     postgresql-client \
     netcat-openbsd \
+    bash \
     && update-ca-certificates
 
 # Create non-root user
@@ -58,6 +77,9 @@ COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /build/gotak-server /app/
 COPY --from=builder /build/gotak-client /app/
 
+# Copy web build from web-builder stage
+COPY --from=web-builder /web/dist /app/web
+
 # Copy configuration files and scripts
 COPY --chown=gotak:gotak config/ /app/config/
 COPY --chown=gotak:gotak migrations/ /app/migrations/
@@ -71,8 +93,8 @@ COPY --chown=gotak:gotak scripts/validate-config.sh /app/
 RUN chmod +x /app/entrypoint.sh /app/healthcheck.sh /app/migrate.sh /app/backup.sh /app/validate-config.sh
 
 # Create necessary directories
-RUN mkdir -p /app/logs /app/data /app/certs && \
-    chown -R gotak:gotak /app/logs /app/data /app/certs
+RUN mkdir -p /app/logs /app/data /app/certs /app/web && \
+    chown -R gotak:gotak /app/logs /app/data /app/certs /app/web
 
 # Switch to non-root user
 USER gotak

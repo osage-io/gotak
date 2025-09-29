@@ -137,14 +137,8 @@ CREATE INDEX idx_mission_resources_type ON mission_resource_requests(resource_ty
 CREATE INDEX idx_mission_resources_requested_by ON mission_resource_requests(requested_by);
 CREATE INDEX idx_mission_resources_required_date ON mission_resource_requests(required_date);
 
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- Note: update_updated_at_column() function already exists from 002_add_mfa_tables.up.sql
+-- No need to create it again here
 
 -- Triggers for updated_at columns
 CREATE TRIGGER update_missions_updated_at 

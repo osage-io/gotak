@@ -56,6 +56,22 @@ dev: dev-up ## Start development server with hot reload
 	@sleep 3
 	air -c .air.toml
 
+dev-web: ## Start complete development stack including web UI
+	@echo "Starting complete development stack with web UI..."
+	@./scripts/start-dev-stack.sh
+
+web-build: ## Build web UI Docker image
+	@echo "Building web UI Docker image..."
+	@docker build -t gotak-web:dev ./web
+
+web-dev: ## Start web UI in development mode
+	@echo "Starting web UI in development mode..."
+	@cd web && npm run dev
+
+web-install: ## Install web UI dependencies
+	@echo "Installing web UI dependencies..."
+	@cd web && npm ci
+
 # Default target
 help: ## Show this help message
 	@echo "GoTAK Server - Available commands:"
@@ -165,6 +181,22 @@ docker-build: ## Build Docker image
 	@echo "Building Docker image..."
 	@docker build -t gotak-server:$(VERSION) .
 	@docker tag gotak-server:$(VERSION) gotak-server:latest
+
+docker-build-nomad: ## Build Docker images for Nomad deployment
+	@echo "Building GoTAK images for Nomad..."
+	@docker build --build-arg VERSION=$(VERSION) --build-arg BUILD_TIME=$(BUILD_TIME) --build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		-t gotak/server:$(VERSION) -t gotak/server:latest .
+	@docker build -t gotak/web:$(VERSION) -t gotak/web:latest ./web
+	@echo "Nomad images built:"
+	@echo "  gotak/server:$(VERSION) (includes both server and web UI)"
+	@echo "  gotak/web:$(VERSION) (web UI only)"
+
+docker-push-nomad: docker-build-nomad ## Push Docker images for Nomad
+	@echo "Pushing GoTAK images for Nomad..."
+	@docker push gotak/server:$(VERSION)
+	@docker push gotak/server:latest
+	@docker push gotak/web:$(VERSION)
+	@docker push gotak/web:latest
 
 docker-run: docker-build ## Run Docker container
 	@echo "Running Docker container..."

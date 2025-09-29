@@ -1,0 +1,156 @@
+# GoTAK Server Development Configuration
+# This configuration is used when running the server in Docker development environment
+
+server:
+  # Server address and port
+  address: "0.0.0.0"
+  port: 8080
+  
+  # Read timeout for HTTP requests
+  read_timeout: 30s
+  
+  # Write timeout for HTTP responses  
+  write_timeout: 30s
+  
+  # Idle timeout for keep-alive connections
+  idle_timeout: 120s
+  
+  # Maximum header size
+  max_header_bytes: 1048576
+
+# TAK server configuration
+tak:
+  # TCP listener for TAK clients
+  tcp:
+    enabled: true
+    address: "0.0.0.0"
+    port: 8087
+    
+  # UDP listener for TAK clients
+  udp:
+    enabled: true
+    address: "0.0.0.0"
+    port: 8087
+    
+  # TLS listener for secure TAK clients
+  tls:
+    enabled: true
+    address: "0.0.0.0"
+    port: 8089
+    cert_file: "/app/certs/server.crt"
+    key_file: "/app/certs/server.key"
+    
+  # Client settings
+  max_clients: 1000
+  client_timeout: 300s
+  heartbeat_interval: 30s
+  message_buffer_size: 1000
+  max_message_size: 8192
+
+# Database configuration
+database:
+  # PostgreSQL connection
+  host: "postgres"
+  port: 5432
+  user: "gotak"
+  password: "dev_password"
+  name: "gotak_dev"
+  sslmode: "disable"
+  
+  # Connection pool settings
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 300s
+  conn_max_idle_time: 30s
+
+# Redis configuration
+redis:
+  # Redis connection
+  host: "redis"
+  port: 6379
+  password: "dev_redis_pass"
+  db: 0
+  
+  # Connection pool settings
+  pool_size: 10
+  min_idle_conns: 5
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+  pool_timeout: 4s
+  idle_timeout: 300s
+
+# NATS configuration
+nats:
+  # NATS connection
+  url: "nats://nats:4222"
+  
+  # Connection settings
+  max_reconnects: -1
+  reconnect_wait: 2s
+  timeout: 5s
+
+# Logging configuration
+logging:
+  level: "debug"
+  format: "json"
+  output: "/app/logs/gotak.log"
+  max_size: 100
+  max_age: 30
+  max_backups: 10
+  compress: true
+  local_time: true
+
+# Metrics and monitoring
+metrics:
+  enabled: true
+  path: "/metrics"
+  
+# Tracing configuration
+tracing:
+  enabled: true
+  jaeger:
+    endpoint: "http://jaeger:14268/api/traces"
+    service_name: "gotak-server-dev"
+    sampler_type: "const"
+    sampler_param: 1.0
+
+# Security settings
+security:
+  # CORS settings
+  cors:
+    enabled: true
+    allowed_origins: 
+      - "http://localhost:3000"
+      - "http://localhost:5173"
+      - "http://web"
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["*"]
+    allow_credentials: true
+    max_age: 86400
+    
+  # Rate limiting
+  rate_limit:
+    enabled: true
+    requests_per_minute: 1000
+    burst: 100
+    
+  # TLS settings
+  tls:
+    min_version: "1.2"
+    cipher_suites: []  # Use default secure cipher suites
+
+# Feature flags
+features:
+  web_ui: true
+  api_docs: true
+  metrics: true
+  tracing: true
+  auth: false  # Disable auth for development
+  
+# Development specific settings
+development:
+  debug: true
+  reload_config: true
+  enable_pprof: true
+  pprof_addr: ":6060"

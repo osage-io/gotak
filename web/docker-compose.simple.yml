@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  gotak-web-ui:
+    build: .
+    ports:
+      - "8082:80"
+    environment:
+      GOTAK_SERVER_URL: ws://backend:8087
+      GOTAK_API_URL: http://backend:8080
+      GOTAK_WS_URL: ws://backend:8087/ws
+    restart: unless-stopped

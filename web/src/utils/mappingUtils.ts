@@ -130,6 +130,33 @@ export function formatBearing(degrees: number): string {
 }
 
 /**
+ * Format coordinates for display
+ */
+export function formatCoordinates(point: Point, format: 'dd' | 'dms' | 'mgrs' = 'dd'): string {
+  switch (format) {
+    case 'dms': {
+      const latDeg = Math.floor(Math.abs(point.lat));
+      const latMin = Math.floor((Math.abs(point.lat) - latDeg) * 60);
+      const latSec = ((Math.abs(point.lat) - latDeg) * 60 - latMin) * 60;
+      const latDir = point.lat >= 0 ? 'N' : 'S';
+      
+      const lngDeg = Math.floor(Math.abs(point.lng));
+      const lngMin = Math.floor((Math.abs(point.lng) - lngDeg) * 60);
+      const lngSec = ((Math.abs(point.lng) - lngDeg) * 60 - lngMin) * 60;
+      const lngDir = point.lng >= 0 ? 'E' : 'W';
+      
+      return `${latDeg}°${latMin}'${latSec.toFixed(2)}"${latDir} ${lngDeg}°${lngMin}'${lngSec.toFixed(2)}"${lngDir}`;
+    }
+    case 'mgrs':
+      // Simplified MGRS format - would need full MGRS conversion library for accuracy
+      return `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)} (approx MGRS)`;
+    case 'dd':
+    default:
+      return `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`;
+  }
+}
+
+/**
  * Convert Leaflet LatLng to Point
  */
 export function latLngToPoint(latLng: L.LatLng): Point {

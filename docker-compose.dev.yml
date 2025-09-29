@@ -1,14 +1,16 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15
+    image: postgis/postgis:15-3.4
     container_name: gotak-postgres-dev
     environment:
       POSTGRES_DB: gotak_dev
       POSTGRES_USER: gotak
       POSTGRES_PASSWORD: dev_password
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      SERVICE_NAME: postgres
+      SERVICE_TAGS: db,postgres,gotak
+      SERVICE_CHECK_TCP: "postgres:5432"
+      SERVICE_CHECK_INTERVAL: 15s
     ports:
       - "5432:5432"
     volumes:
@@ -21,7 +23,7 @@ services:
       retries: 5
 
   postgres-test:
-    image: postgres:15
+    image: postgis/postgis:15-3.4
     container_name: gotak-postgres-test
     environment:
       POSTGRES_DB: gotak_test
@@ -41,6 +43,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: gotak-redis-dev
+    environment:
+      SERVICE_NAME: redis
+      SERVICE_TAGS: cache,redis,gotak
+      SERVICE_CHECK_TCP: "redis:6379"
+      SERVICE_CHECK_INTERVAL: 15s
     ports:
       - "6379:6379"
     volumes:
@@ -56,6 +63,11 @@ services:
   nats:
     image: nats:2.9-alpine
     container_name: gotak-nats-dev
+    environment:
+      SERVICE_NAME: nats
+      SERVICE_TAGS: messaging,nats,gotak
+      SERVICE_CHECK_HTTP: "http://nats:8222/healthz"
+      SERVICE_CHECK_INTERVAL: 15s
     ports:
       - "4222:4222"  # NATS client connections
       - "8222:8222"  # HTTP monitoring
@@ -70,6 +82,88 @@ services:
       timeout: 5s
       retries: 5
 
+  # GoTAK Server
+  gotak-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VERSION=dev-docker
+        - BUILD_TIME=dev
+        - GIT_COMMIT=dev
+    container_name: gotak-server-dev
+    ports:
+      - "8082:8080"  # HTTP API
+      - "8087:8087"  # TAK TCP/UDP
+      - "8089:8089"  # TAK TLS
+    environment:
+      - GIN_MODE=debug
+      - GOTAK_LOG_LEVEL=debug
+      - GOTAK_CONFIG_PATH=/app/config/development.yaml
+      - DATABASE_URL=postgres://gotak:dev_password@postgres:5432/gotak_dev?sslmode=disable
+      - REDIS_URL=redis://:dev_redis_pass@redis:6379/0
+      - NATS_URL=nats://nats:4222
+      - POSTGRES_PASSWORD=dev_password
+      - JWT_SECRET=dev_jwt_secret_key_for_development_only
+      - MIGRATIONS_DIR=/app/migrations
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=gotak_dev
+      - POSTGRES_USER=gotak
+      - SERVICE_NAME=gotak-server
+      - SERVICE_TAGS=api,tak,gotak,server
+      - SERVICE_8080_CHECK_HTTP=/health
+      - SERVICE_8087_NAME=gotak-tak
+      - SERVICE_8087_TAGS=tak,protocol
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./certs:/app/certs:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # GoTAK Web UI
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: gotak-web-dev
+    ports:
+      - "8080:80"
+    environment:
+      - GOTAK_SERVER_URL=ws://localhost:8087
+      - GOTAK_API_URL=http://localhost:8082
+      - GOTAK_WS_URL=ws://localhost:8087/ws
+      - MAP_DEFAULT_LAT=38.9072
+      - MAP_DEFAULT_LNG=-77.0369
+      - MAP_DEFAULT_ZOOM=12
+      - ENABLE_CHAT=true
+      - ENABLE_DRAWING=true
+      - ENABLE_MEASUREMENTS=true
+      - ENABLE_GEOFENCING=true
+      - SERVICE_NAME=gotak-web
+      - SERVICE_TAGS=web,ui,gotak,frontend
+      - SERVICE_CHECK_HTTP=/health
+      - SERVICE_CHECK_INTERVAL=30s
+    depends_on:
+      - gotak-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Vault is running on host system - no container needed
 
   # Optional: Jaeger for distributed tracing
@@ -82,6 +176,10 @@ services:
       - "14250:14250" # gRPC
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+      - SERVICE_NAME=jaeger
+      - SERVICE_TAGS=tracing,jaeger,monitoring,gotak
+      - SERVICE_CHECK_HTTP="http://jaeger:14269/"
+      - SERVICE_CHECK_INTERVAL=30s
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
       interval: 30s
@@ -97,6 +195,10 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: postgres
       ADMINER_DESIGN: dracula
+      SERVICE_NAME: adminer
+      SERVICE_TAGS: db,admin,ui,gotak
+      SERVICE_CHECK_HTTP: "http://adminer:8080"
+      SERVICE_CHECK_INTERVAL: 30s
     depends_on:
       postgres:
         condition: service_healthy

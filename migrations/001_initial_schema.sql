@@ -9,17 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "postgis";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- For text search
 CREATE EXTENSION IF NOT EXISTS "btree_gist";  -- For advanced indexing
 
--- Create migration tracking table
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version VARCHAR(255) PRIMARY KEY,
-    applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    description TEXT
-);
-
--- Insert this migration record
-INSERT INTO schema_migrations (version, description) 
-VALUES ('001', 'Initial schema creation') 
-ON CONFLICT (version) DO NOTHING;
+-- Migration tracking handled by migration script
 
 -- ===========================================================================
 -- USER MANAGEMENT TABLES
@@ -257,19 +247,24 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply updated_at triggers to tables
+-- Apply updated_at triggers to tables (drop if exists first to make idempotent)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_routes_updated_at ON routes;
 CREATE TRIGGER update_routes_updated_at BEFORE UPDATE ON routes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_geofences_updated_at ON geofences;
 CREATE TRIGGER update_geofences_updated_at BEFORE UPDATE ON geofences
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_offline_areas_updated_at ON offline_areas;
 CREATE TRIGGER update_offline_areas_updated_at BEFORE UPDATE ON offline_areas
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_tactical_overlays_updated_at ON tactical_overlays;
 CREATE TRIGGER update_tactical_overlays_updated_at BEFORE UPDATE ON tactical_overlays
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -297,15 +292,18 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply audit triggers to important tables
+-- Apply audit triggers to important tables (drop if exists first to make idempotent)
+DROP TRIGGER IF EXISTS audit_users_trigger ON users;
 CREATE TRIGGER audit_users_trigger
     AFTER INSERT OR UPDATE OR DELETE ON users
     FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
 
+DROP TRIGGER IF EXISTS audit_routes_trigger ON routes;
 CREATE TRIGGER audit_routes_trigger
     AFTER INSERT OR UPDATE OR DELETE ON routes
     FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();
 
+DROP TRIGGER IF EXISTS audit_geofences_trigger ON geofences;
 CREATE TRIGGER audit_geofences_trigger
     AFTER INSERT OR UPDATE OR DELETE ON geofences
     FOR EACH ROW EXECUTE FUNCTION audit_trigger_function();

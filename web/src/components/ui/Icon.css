@@ -1,0 +1,118 @@
+.gotak-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  cursor: inherit;
+  vertical-align: middle;
+}
+
+.gotak-icon svg {
+  display: block;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Interactive states */
+.gotak-icon.clickable {
+  cursor: pointer;
+}
+
+.gotak-icon.clickable:hover {
+  transform: scale(1.1);
+  filter: brightness(1.2);
+}
+
+.gotak-icon.clickable:active {
+  transform: scale(0.95);
+}
+
+/* Spin animation for loading states */
+.gotak-icon.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Pulse animation for alerts */
+.gotak-icon.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Size variants */
+.gotak-icon.xs {
+  width: 16px;
+  height: 16px;
+}
+
+.gotak-icon.sm {
+  width: 20px;
+  height: 20px;
+}
+
+.gotak-icon.md {
+  width: 24px;
+  height: 24px;
+}
+
+.gotak-icon.lg {
+  width: 32px;
+  height: 32px;
+}
+
+.gotak-icon.xl {
+  width: 48px;
+  height: 48px;
+}
+
+/* Color variants using GoTAK theme */
+.gotak-icon.primary {
+  color: #14b8a6;
+}
+
+.gotak-icon.secondary {
+  color: #64748b;
+}
+
+.gotak-icon.success {
+  color: #10b981;
+}
+
+.gotak-icon.warning {
+  color: #f59e0b;
+}
+
+.gotak-icon.danger {
+  color: #ef4444;
+}
+
+.gotak-icon.info {
+  color: #06b6d4;
+}
+
+/* Disabled state */
+.gotak-icon.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}

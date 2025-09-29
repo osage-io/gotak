@@ -1,0 +1,78 @@
+/**
+ * Error Fallback Styles
+ */
+
+.error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  background-color: #0a0d10;
+  color: #dcddde;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-fallback h2 {
+  color: #f44336;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.error-details {
+  margin: 1rem 0;
+  max-width: 600px;
+  text-align: left;
+}
+
+.error-details summary {
+  cursor: pointer;
+  padding: 0.5rem;
+  background-color: #1a1d20;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  color: #b0b3b8;
+}
+
+.error-details pre {
+  background-color: #1a1d20;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.8rem;
+  color: #dcddde;
+}
+
+.error-stack {
+  color: #72767d !important;
+  font-size: 0.7rem !important;
+}
+
+.retry-button {
+  background-color: #00d4aa;
+  color: #0a0d10;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.15s ease;
+}
+
+.retry-button:hover {
+  background-color: #00b894;
+}
+
+.retry-button:active {
+  transform: translateY(1px);
+}

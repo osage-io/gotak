@@ -8,6 +8,7 @@ server:
   tcp_port: 8087
   udp_port: 8087
   tls_port: 8089
+  serve_static: true  # Enable serving of web UI
   read_timeout: "30s"
   write_timeout: "30s"
   idle_timeout: "120s"

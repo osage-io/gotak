@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -141,9 +142,15 @@ func (h *HTTPServer) setupRoutes() {
 	// Health check endpoint
 	h.router.HandleFunc("/health", h.handleHealth).Methods("GET")
 	
-	// Static file serving for development (optional)
+	// Static file serving for web UI
 	if h.config.Server.ServeStatic {
-		h.router.PathPrefix("/").Handler(http.FileServer(http.Dir("./web/dist/")))
+		// Check if running in container (web directory at /app/web)
+		webDir := "/app/web"
+		if _, err := os.Stat(webDir); os.IsNotExist(err) {
+			// Fallback to local development path
+			webDir = "./web/dist"
+		}
+		h.router.PathPrefix("/").Handler(http.FileServer(http.Dir(webDir)))
 	}
 }
 

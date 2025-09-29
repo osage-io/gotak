@@ -1,0 +1,69 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gotak-web-ingress
+  namespace: gotak
+  labels:
+    app.kubernetes.io/name: gotak-web
+    app.kubernetes.io/component: web-ui
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    # Enable WebSocket support for real-time tactical data
+    nginx.ingress.kubernetes.io/proxy-set-headers: |
+      Connection "upgrade"
+      Upgrade $http_upgrade
+    # Security headers for tactical applications
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:;" always;
+spec:
+  tls:
+  - hosts:
+    - gotak.local
+    - gotak.yourdomain.com
+    secretName: gotak-web-tls
+  rules:
+  - host: gotak.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gotak-web
+            port:
+              number: 80
+  - host: gotak.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gotak-web
+            port:
+              number: 80
+---
+# Self-signed certificate for development
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gotak-web-tls
+  namespace: gotak
+type: kubernetes.io/tls
+data:
+  # Replace with your actual TLS certificate and key (base64 encoded)
+  tls.crt: LS0tLS1CRUdJTi...  # Your certificate here
+  tls.key: LS0tLS1CRUdJTi...  # Your private key here
+---

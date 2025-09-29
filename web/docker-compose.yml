@@ -1,0 +1,181 @@
+# GoTAK Tactical UI - Docker Compose Configuration
+# Production-ready deployment with tactical interface
+
+version: '3.8'
+
+services:
+  gotak-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gotak-tactical-ui
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      # Backend connection settings
+      - GOTAK_SERVER_URL=ws://gotak-server:8087
+      - GOTAK_API_URL=http://gotak-server:8080
+      - GOTAK_WS_URL=ws://gotak-server:8087/ws
+      
+      # Map configuration
+      - MAP_DEFAULT_LAT=38.9072
+      - MAP_DEFAULT_LNG=-77.0369
+      - MAP_DEFAULT_ZOOM=12
+      - MAP_MAX_ZOOM=18
+      - MAP_MIN_ZOOM=3
+      
+      # Feature toggles
+      - ENABLE_CHAT=true
+      - ENABLE_DRAWING=true
+      - ENABLE_MEASUREMENTS=true
+      - ENABLE_GEOFENCING=true
+    
+    networks:
+      - gotak-network
+    
+    depends_on:
+      - gotak-server
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gotak-web.rule=Host(`gotak.local`)"
+      - "traefik.http.routers.gotak-web.entrypoints=web"
+      - "traefik.http.services.gotak-web.loadbalancer.server.port=80"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  gotak-server:
+    image: gotak-server:latest  # Assumes you have built the Go backend
+    container_name: gotak-server
+    restart: unless-stopped
+    ports:
+      - "8087:8087"  # TAK server port
+      - "8089:8089"  # TLS port
+    environment:
+      - LOG_LEVEL=info
+      - GOTAK_CONFIG_PATH=/app/config/server.yaml
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=gotak
+      - POSTGRES_USER=gotak
+      - POSTGRES_PASSWORD=tactical_secure_pass
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=dev_jwt_secret_key_change_in_production_123456789
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8087
+      - API_PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=gotak
+      - DB_USER=gotak
+      - DB_PASSWORD=tactical_secure_pass
+      - REDIS_URL=redis://redis:6379
+      - MIGRATIONS_DIR=/app/migrations
+    
+    networks:
+      - gotak-network
+    
+    depends_on:
+      - postgres
+      - redis
+    
+    volumes:
+      - ../config:/app/config:ro
+      - gotak-data:/app/data
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgis/postgis:15-3.4-alpine
+    container_name: gotak-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=gotak
+      - POSTGRES_USER=gotak
+      - POSTGRES_PASSWORD=tactical_secure_pass
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+    networks:
+      - gotak-network
+    
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gotak -d gotak"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: gotak-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass tactical_cache_pass
+    
+    networks:
+      - gotak-network
+    
+    volumes:
+      - redis-data:/data
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Optional: Reverse proxy for production
+  traefik:
+    image: traefik:v2.10
+    container_name: gotak-traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8090:8080"  # Traefik dashboard
+    
+    networks:
+      - gotak-network
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    
+    profiles:
+      - reverse-proxy
+
+networks:
+  gotak-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  gotak-data:
+    driver: local

@@ -26,7 +26,7 @@ GoTAK is a compatible TAK server implementation that provides situational awaren
 - **Cross-platform**: Runs on Linux, macOS, and Windows
 - **Docker Support**: Multi-stage optimized builds for production deployment
 - **Federation Support**: Connect multiple TAK servers (coming soon)
-- **Web Interface**: Administration and monitoring interface (planned)
+- **Web Interface**: Advanced tactical interface with intelligent search and keyboard shortcuts
 
 ## Quick Start
 
@@ -138,7 +138,7 @@ go build -o bin/gotak-client ./cmd/gotak-client
 ./bin/gotak-client -server localhost:8087 -protocol udp -callsign "TestUser"
 ```
 
-## Client Commands
+### Client Commands
 
 When connected with the test client:
 
@@ -146,6 +146,27 @@ When connected with the test client:
 - `chat <message>` - Send chat message to all users
 - `ping` - Send ping to server
 - `quit` - Disconnect and exit
+
+### Web Interface
+
+GoTAK includes a modern tactical web interface with advanced search capabilities:
+
+**Global Search & Navigation:**
+- `Ctrl/Cmd + K` - Open command palette
+- `/` - Quick search focus
+- `Ctrl + 1-9` - Navigate to pages (Dashboard, Map, Comms, etc.)
+- `Ctrl + E` - Emergency alert
+- `Ctrl + I` - AI Intel Officer
+- `Ctrl + L` - Alerts
+- `Ctrl + G` - Settings
+
+**Search Features:**
+- Intelligent search across pages, entities, and actions
+- Keyboard navigation (Arrow keys, Enter, Escape)
+- Categorized results (Pages, Commands, AI Actions)
+- Real-time filtering and highlighting
+
+Access the web interface at `http://localhost:8080` when the server is running.
 
 ## Development
 

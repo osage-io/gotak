@@ -6,8 +6,8 @@ DROP TRIGGER IF EXISTS update_missions_updated_at ON missions;
 DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
 DROP TRIGGER IF EXISTS update_mission_resource_requests_updated_at ON mission_resource_requests;
 
--- Drop function
-DROP FUNCTION IF EXISTS update_updated_at_column();
+-- Note: Do NOT drop update_updated_at_column() function here as it's shared
+-- and was created in 002_add_mfa_tables.up.sql and used by other triggers
 
 -- Drop indexes (will be automatically dropped with tables, but explicit for clarity)
 DROP INDEX IF EXISTS idx_missions_status;

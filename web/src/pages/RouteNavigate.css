@@ -1,0 +1,632 @@
+/**
+ * Route Navigate Page Styles
+ * Real-time navigation interface
+ */
+
+.route-navigate-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0a0a0a;
+  color: #e0e0e0;
+  overflow: hidden;
+}
+
+/* Navigation Header */
+.navigate-header {
+  background: #141414;
+  border-bottom: 1px solid #2a2a2a;
+  padding: 0.75rem 1rem;
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid #2a2a2a;
+  border-radius: 0.5rem;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #1a1a1a;
+  color: #00d4aa;
+  border-color: #00d4aa;
+}
+
+.route-name {
+  flex: 1;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #00d4aa;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-primary,
+.btn-control,
+.btn-danger,
+.btn-settings {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-primary {
+  background: #00d4aa;
+  color: #000;
+}
+
+.btn-primary:hover {
+  background: #00b894;
+}
+
+.btn-control {
+  background: #ff9800;
+  color: #000;
+}
+
+.btn-control.paused {
+  background: #00d4aa;
+}
+
+.btn-danger {
+  background: #f44336;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #d32f2f;
+}
+
+.btn-settings {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  color: #888;
+}
+
+.btn-settings:hover {
+  background: #252525;
+  color: #e0e0e0;
+}
+
+/* Navigation Content */
+.navigate-content {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  overflow: hidden;
+}
+
+/* Map Container */
+.map-container {
+  position: relative;
+  background: #0a0a0a;
+  border-right: 1px solid #2a2a2a;
+}
+
+.map-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  background: #0a0a0a;
+}
+
+.map-placeholder svg {
+  color: #00d4aa;
+  opacity: 0.2;
+}
+
+.map-placeholder h3 {
+  margin: 1rem 0 0.5rem 0;
+  color: #e0e0e0;
+}
+
+.map-placeholder p {
+  color: #666;
+  margin: 0;
+}
+
+/* Position Overlay */
+.position-overlay {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid #2a2a2a;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  backdrop-filter: blur(10px);
+}
+
+.position-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.position-info:last-child {
+  margin-bottom: 0;
+}
+
+.position-info .label {
+  color: #888;
+}
+
+.position-info .value {
+  color: #00d4aa;
+  font-family: monospace;
+}
+
+/* Navigation Stats Overlay */
+.nav-stats-overlay {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.stat-card {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid #2a2a2a;
+  border-radius: 0.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.stat-card.primary {
+  border-color: #00d4aa;
+  background: rgba(0, 212, 170, 0.1);
+}
+
+.stat-card svg {
+  color: #00d4aa;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-info .value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.stat-info .label {
+  font-size: 0.75rem;
+  color: #888;
+  text-transform: uppercase;
+}
+
+/* Instructions Panel */
+.instructions-panel {
+  background: #141414;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Current Instruction */
+.current-instruction {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(0, 212, 170, 0.05));
+  border: 1px solid #00d4aa;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.instruction-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #00d4aa;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.instruction-icon svg {
+  color: #000;
+}
+
+.instruction-details h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  color: #e0e0e0;
+}
+
+.instruction-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.separator {
+  color: #444;
+}
+
+/* Upcoming Instructions */
+.upcoming-instructions {
+  margin-bottom: 1.5rem;
+}
+
+.upcoming-instructions h3 {
+  color: #00d4aa;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  margin: 0 0 1rem 0;
+}
+
+.instructions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.instruction-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.5rem;
+}
+
+.instruction-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 212, 170, 0.2);
+  color: #00d4aa;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.instruction-item svg {
+  color: #00d4aa;
+}
+
+.instruction-text {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.instruction-text .text {
+  color: #e0e0e0;
+  font-size: 0.875rem;
+}
+
+.instruction-text .distance {
+  color: #888;
+  font-size: 0.75rem;
+}
+
+/* Waypoint Info Panel */
+.waypoint-info-panel {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.waypoint-info-panel h3 {
+  color: #00d4aa;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  margin: 0 0 1rem 0;
+}
+
+.waypoint-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.waypoint-header svg {
+  color: #00d4aa;
+}
+
+.waypoint-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.waypoint-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.waypoint-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.waypoint-stats .label {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.waypoint-stats .value {
+  font-size: 0.875rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.waypoint-notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(255, 152, 0, 0.1);
+  border-left: 3px solid #ff9800;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  color: #e0e0e0;
+}
+
+.waypoint-notes svg {
+  color: #ff9800;
+  flex-shrink: 0;
+}
+
+/* Route Progress */
+.route-progress {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.route-progress h3 {
+  color: #00d4aa;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  margin: 0 0 1rem 0;
+}
+
+.progress-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #00d4aa, #00b894);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.progress-markers {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 16px;
+}
+
+.marker {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: #2a2a2a;
+  border: 2px solid #444;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.marker.completed {
+  background: #00d4aa;
+  border-color: #00d4aa;
+}
+
+.marker.active {
+  background: #ff9800;
+  border-color: #ff9800;
+  animation: pulse 2s infinite;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+/* Settings Panel */
+.settings-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background: #141414;
+  border-left: 1px solid #2a2a2a;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.settings-header h3 {
+  color: #00d4aa;
+  margin: 0;
+}
+
+.settings-header button {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.settings-header button:hover {
+  color: #e0e0e0;
+}
+
+.settings-content {
+  padding: 1.25rem;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.5);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00d4aa;
+}
+
+.setting-item span {
+  color: #e0e0e0;
+  font-size: 0.875rem;
+}
+
+/* Alert Banner */
+.alert-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 200;
+}
+
+.alert-banner.warning {
+  background: linear-gradient(90deg, #ff9800, #ff5722);
+  color: #fff;
+}
+
+.alert-banner svg {
+  flex-shrink: 0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .navigate-content {
+    grid-template-columns: 1fr;
+  }
+
+  .map-container {
+    height: 50vh;
+    border-right: none;
+    border-bottom: 1px solid #2a2a2a;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-controls {
+    flex-wrap: wrap;
+  }
+
+  .route-name {
+    width: 100%;
+    order: -1;
+    margin-bottom: 0.5rem;
+  }
+
+  .nav-stats-overlay {
+    flex-direction: column;
+  }
+
+  .settings-panel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .navigate-header {
+    padding: 0.5rem;
+  }
+
+  .instructions-panel {
+    padding: 1rem;
+  }
+
+  .current-instruction {
+    padding: 1rem;
+  }
+
+  .instruction-details h2 {
+    font-size: 1rem;
+  }
+}

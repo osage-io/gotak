@@ -224,10 +224,16 @@ main() {
     log "Starting GoTAK server with config: $GOTAK_CONFIG_PATH"
     log "Log level: $GOTAK_LOG_LEVEL"
     
-    # Execute the main command
+    # Execute the main command with config argument
     if [ $# -gt 0 ]; then
-        log "Executing command: $*"
-        exec "$@" &
+        # Add config argument if GOTAK_CONFIG_PATH is set
+        CONFIG_ARG=""
+        if [ -n "$GOTAK_CONFIG_PATH" ]; then
+            CONFIG_ARG="-config $GOTAK_CONFIG_PATH"
+        fi
+        
+        log "Executing command: $* $CONFIG_ARG"
+        exec "$@" $CONFIG_ARG &
         GOTAK_PID=$!
         wait $GOTAK_PID
     else
