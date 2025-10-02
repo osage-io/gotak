@@ -20,12 +20,12 @@ import (
 // Service provides mission management functionality
 type Service struct {
 	db        database.DB
-	logger    logger.Logger
+	logger    *logger.Logger
 	publisher events.Publisher
 }
 
 // NewService creates a new mission service instance
-func NewService(db database.DB, logger logger.Logger, publisher events.Publisher) *Service {
+func NewService(db database.DB, logger *logger.Logger, publisher events.Publisher) *Service {
 	return &Service{
 		db:        db,
 		logger:    logger,
@@ -803,6 +803,10 @@ func isValidMissionStatusTransition(from, to MissionStatus) bool {
 // Context helper functions
 
 func getUserIDFromContext(ctx context.Context) string {
+	if userID, ok := ctx.Value(UserIDKey).(string); ok {
+		return userID
+	}
+	// Try old key for backward compatibility
 	if userID, ok := ctx.Value("user_id").(string); ok {
 		return userID
 	}
@@ -810,6 +814,10 @@ func getUserIDFromContext(ctx context.Context) string {
 }
 
 func getGroupIDFromContext(ctx context.Context) string {
+	if groupID, ok := ctx.Value(GroupIDKey).(string); ok {
+		return groupID
+	}
+	// Try old key for backward compatibility
 	if groupID, ok := ctx.Value("group_id").(string); ok {
 		return groupID
 	}

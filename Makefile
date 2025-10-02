@@ -1,6 +1,6 @@
 # GoTAK Server Makefile
 
-.PHONY: dev dev-up dev-down dev-logs dev-status dev-clean dev-debug build run clean test test-integration test-scripts lint security security-audit security-audit-quick security-audit-headers security-audit-tls security-audit-auth docker precommit-install precommit-run precommit-update help
+.PHONY: dev dev-up dev-down dev-logs dev-status dev-clean dev-debug build run clean test test-integration test-scripts lint security security-audit security-audit-quick security-audit-headers security-audit-tls security-audit-auth docker precommit-install precommit-run precommit-update consul-register consul-register-dry help
 
 # Variables
 BINARY_NAME=gotak-server
@@ -269,6 +269,15 @@ db-create: ## Create database (requires PostgreSQL)
 db-migrate: ## Run database migrations
 	@echo "Running database migrations..."
 	# TODO: Implement database migrations
+
+# Consul service registration
+consul-register: ## Register services with Consul
+	@echo "Registering GoTAK services with Consul..."
+	@./scripts/register-consul.sh
+
+consul-register-dry: ## Show what would be registered (dry run)
+	@echo "Dry run - showing Consul registration plan..."
+	@./scripts/register-consul.sh --dry-run
 
 # Installation
 install: build ## Install the binary to system path

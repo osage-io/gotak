@@ -93,7 +93,7 @@ services:
         - GIT_COMMIT=dev
     container_name: gotak-server-dev
     ports:
-      - "8082:8080"  # HTTP API
+      - "8090:8080"  # HTTP API
       - "8087:8087"  # TAK TCP/UDP
       - "8089:8089"  # TAK TLS
     environment:
@@ -115,6 +115,7 @@ services:
       - SERVICE_8080_CHECK_HTTP=/health
       - SERVICE_8087_NAME=gotak-tak
       - SERVICE_8087_TAGS=tak,protocol
+      - GOTAK_STANDALONE=true  # Skip database migration
     volumes:
       - ./config:/app/config:ro
       - ./logs:/app/logs
@@ -143,7 +144,7 @@ services:
       - "8080:80"
     environment:
       - GOTAK_SERVER_URL=ws://localhost:8087
-      - GOTAK_API_URL=http://localhost:8082
+      - GOTAK_API_URL=http://localhost:8090
       - GOTAK_WS_URL=ws://localhost:8087/ws
       - MAP_DEFAULT_LAT=38.9072
       - MAP_DEFAULT_LNG=-77.0369

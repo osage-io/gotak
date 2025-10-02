@@ -1,10 +1,10 @@
-# GoTAK Server Development Configuration
-# This configuration is used when running the server in Docker development environment
+# GoTAK Server Development Configuration - Host Network Mode
+# This configuration is used when running the server with --network host
 
 server:
   # Server address and port
   address: "0.0.0.0"
-  port: 8080
+  port: 8085  # Using 8085 to avoid conflicts
   
   # Read timeout for HTTP requests
   read_timeout: 30s
@@ -50,12 +50,12 @@ tak:
 # Database configuration
 database:
   # PostgreSQL connection
-  host: "postgres"
+  host: "localhost"
   port: 5432
-  username: "gotak"
+  user: "gotak"
   password: "dev_password"
-  database: "gotak_dev"
-  ssl_mode: "disable"
+  name: "gotak_dev"
+  sslmode: "disable"
   
   # Connection pool settings
   max_open_conns: 25
@@ -66,7 +66,7 @@ database:
 # Redis configuration
 redis:
   # Redis connection
-  host: "redis"
+  host: "localhost"
   port: 6379
   password: "dev_redis_pass"
   db: 0
@@ -83,7 +83,7 @@ redis:
 # NATS configuration
 nats:
   # NATS connection
-  url: "nats://nats:4222"
+  url: "nats://localhost:4222"
   
   # Connection settings
   max_reconnects: -1
@@ -110,7 +110,7 @@ metrics:
 tracing:
   enabled: true
   jaeger:
-    endpoint: "http://jaeger:14268/api/traces"
+    endpoint: "http://localhost:14268/api/traces"
     service_name: "gotak-server-dev"
     sampler_type: "const"
     sampler_param: 1.0
@@ -123,7 +123,7 @@ security:
     allowed_origins: 
       - "http://localhost:3000"
       - "http://localhost:5173"
-      - "http://web"
+      - "http://localhost:8080"
     allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     allowed_headers: ["*"]
     allow_credentials: true
@@ -146,7 +146,7 @@ features:
   api_docs: true
   metrics: true
   tracing: true
-  auth: false  # Disable auth for development
+  auth: true  # Enable auth for testing
   
 # Development specific settings
 development:

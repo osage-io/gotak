@@ -371,7 +371,7 @@ func (a *AuthService) RegisterUser(req *RegisterRequest) (*User, error) {
 	// Create user
 	userID := uuid.New().String()
 	query := `
-		INSERT INTO gotak.users (id, username, email, password_hash, first_name, last_name, is_active, created_at, updated_at)
+		INSERT INTO users (id, username, email, password_hash, first_name, last_name, is_active, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
 	`
 
@@ -398,7 +398,7 @@ func (a *AuthService) GetUserByID(userID string) (*User, error) {
 		SELECT id, username, email, password_hash, first_name, last_name, 
 		       is_active, mfa_enabled, mfa_secret, last_login, 
 		       failed_attempts, locked_until, created_at, updated_at
-		FROM gotak.users
+		FROM users
 		WHERE id = $1
 	`
 
@@ -426,7 +426,7 @@ func (a *AuthService) GetUserByUsername(username string) (*User, error) {
 		SELECT id, username, email, password_hash, first_name, last_name, 
 		       is_active, mfa_enabled, mfa_secret, last_login, 
 		       failed_attempts, locked_until, created_at, updated_at
-		FROM gotak.users
+		FROM users
 		WHERE username = $1
 	`
 
@@ -454,7 +454,7 @@ func (a *AuthService) GetUserByEmail(email string) (*User, error) {
 		SELECT id, username, email, password_hash, first_name, last_name, 
 		       is_active, mfa_enabled, mfa_secret, last_login, 
 		       failed_attempts, locked_until, created_at, updated_at
-		FROM gotak.users
+		FROM users
 		WHERE email = $1
 	`
 
@@ -480,8 +480,8 @@ func (a *AuthService) GetUserByEmail(email string) (*User, error) {
 func (a *AuthService) GetUserRoles(userID string) ([]Role, error) {
 	query := `
 		SELECT r.id, r.name, r.description, r.is_system_role, r.created_at
-		FROM gotak.roles r
-		INNER JOIN gotak.user_roles ur ON r.id = ur.role_id
+		FROM roles r
+		INNER JOIN user_roles ur ON r.id = ur.role_id
 		WHERE ur.user_id = $1 AND ur.is_active = true
 	`
 

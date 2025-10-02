@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/dfedick/gotak/internal/chat"
 	"github.com/dfedick/gotak/internal/position"
 	"github.com/dfedick/gotak/pkg/config"
@@ -20,6 +22,7 @@ import (
 type Server struct {
 	config *config.ServerConfig
 	logger *logger.Logger
+	db     *sqlx.DB
 	
 	// Connection management
 	clients    map[string]*Client
@@ -74,18 +77,55 @@ func New(cfg *config.ServerConfig) (*Server, error) {
 	
 	log := logger.GetGlobalLogger()
 	
-	// Create chat service (using nil DB for now - will be replaced with real DB connection)
-	chatService := chat.NewService(nil, log)
+	// Initialize database connection (optional for now)
+	var db *sqlx.DB
+	if cfg.Database.Host != "" {
+		// Debug: Log the configuration values
+		log.Debug().
+			Str("host", cfg.Database.Host).
+			Int("port", cfg.Database.Port).
+			Str("username", cfg.Database.Username).
+			Str("database", cfg.Database.Database).
+			Str("sslmode", cfg.Database.SSLMode).
+			Msg("Attempting database connection")
+		
+		// Use URL format for better password handling
+		dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+			cfg.Database.Username,
+			cfg.Database.Password,
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Database,
+			cfg.Database.SSLMode,
+		)
+		
+		var err error
+		db, err = sqlx.Connect("postgres", dsn)
+		if err != nil {
+			log.Warn().Err(err).Msg("Failed to connect to database, running without persistence")
+			// Continue without database - auth will be disabled
+		} else {
+			log.Info().Msg("Database connection established")
+			// Set connection pool settings
+			db.SetMaxOpenConns(25)
+			db.SetMaxIdleConns(5)
+			db.SetConnMaxLifetime(5 * time.Minute)
+		}
+	}
+	
+	// Create chat service
+	chatService := chat.NewService(nil, log) // TODO: Pass db when chat persistence is ready
 	
 	// Create position service
 	positionService := position.NewService()
 	
 	// Create HTTP server
-	httpServer := NewHTTPServer(cfg, log, chatService, positionService)
+	httpServer := NewHTTPServer(cfg, log, chatService, positionService, db)
 	
 	server := &Server{
 		config:          cfg,
 		logger:          log,
+		db:              db,
 		clients:         make(map[string]*Client),
 		broadcast:       make(chan *cot.Event, 1000),
 		register:        make(chan *Client),
@@ -173,6 +213,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if s.httpServer != nil {
 		if err := s.httpServer.Shutdown(ctx); err != nil {
 			log.Warn().Err(err).Msg("Error shutting down HTTP server")
+		}
+	}
+	
+	// Close database connection
+	if s.db != nil {
+		if err := s.db.Close(); err != nil {
+			log.Warn().Err(err).Msg("Error closing database connection")
 		}
 	}
 	

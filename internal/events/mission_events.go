@@ -22,11 +22,11 @@ type Publisher interface {
 // NATSPublisher implements the Publisher interface using NATS
 type NATSPublisher struct {
 	conn   *nats.Conn
-	logger logger.Logger
+	logger *logger.Logger
 }
 
 // NewNATSPublisher creates a new NATS event publisher
-func NewNATSPublisher(natsURL string, logger logger.Logger) (*NATSPublisher, error) {
+func NewNATSPublisher(natsURL string, logger *logger.Logger) (*NATSPublisher, error) {
 	conn, err := nats.Connect(natsURL)
 	if err != nil {
 		return nil, err

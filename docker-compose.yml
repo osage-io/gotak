@@ -1,0 +1,134 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (REQUIRED)
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: gotak-postgres
+    environment:
+      POSTGRES_DB: gotak
+      POSTGRES_USER: gotak
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gotak -d gotak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache (REQUIRED for sessions and caching)
+  redis:
+    image: redis:7-alpine
+    container_name: gotak-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # NATS Messaging (OPTIONAL - only if using events/messaging)
+  nats:
+    image: nats:2.9-alpine
+    container_name: gotak-nats
+    ports:
+      - "4222:4222"  # NATS client connections
+      - "8222:8222"  # HTTP monitoring
+    volumes:
+      - nats_data:/data
+      - ./config/nats.conf:/etc/nats/nats.conf:ro
+    command: ["-c", "/etc/nats/nats.conf"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # GoTAK Server (MAIN APPLICATION)
+  gotak:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VERSION=${VERSION:-latest}
+        - BUILD_TIME=${BUILD_TIME:-}
+        - GIT_COMMIT=${GIT_COMMIT:-}
+    image: gotak/server:${VERSION:-latest}
+    container_name: gotak-server
+    ports:
+      - "8080:8080"  # HTTP API
+      - "8087:8087"  # TAK TCP/UDP
+      - "8089:8089"  # TAK TLS
+    environment:
+      - GIN_MODE=${GIN_MODE:-release}
+      - GOTAK_LOG_LEVEL=${LOG_LEVEL:-info}
+      - GOTAK_CONFIG_PATH=/app/config/production.yaml
+      - DATABASE_URL=postgres://gotak:${POSTGRES_PASSWORD:-changeme}@postgres:5432/gotak?sslmode=disable
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - NATS_URL=nats://nats:4222
+      - JWT_SECRET=${JWT_SECRET:-changeme_in_production}
+      - MIGRATIONS_DIR=/app/migrations
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=gotak
+      - POSTGRES_USER=gotak
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - ./certs:/app/certs:ro
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # Web UI (OPTIONAL - can be served separately)
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    image: gotak/web:${VERSION:-latest}
+    container_name: gotak-web
+    ports:
+      - "80:80"
+    environment:
+      - GOTAK_API_URL=http://gotak:8080
+      - GOTAK_WS_URL=ws://gotak:8087/ws
+      - MAP_DEFAULT_LAT=${MAP_LAT:-38.9072}
+      - MAP_DEFAULT_LNG=${MAP_LNG:--77.0369}
+      - MAP_DEFAULT_ZOOM=${MAP_ZOOM:-12}
+    depends_on:
+      - gotak
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:
+
+networks:
+  default:
+    name: gotak-network

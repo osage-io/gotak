@@ -8,10 +8,15 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
+	"github.com/dfedick/gotak/internal/auth"
 	"github.com/dfedick/gotak/internal/chat"
+	"github.com/dfedick/gotak/internal/events"
 	"github.com/dfedick/gotak/internal/handlers"
+	"github.com/dfedick/gotak/internal/mission"
 	"github.com/dfedick/gotak/internal/position"
 	"github.com/dfedick/gotak/pkg/config"
+	"github.com/dfedick/gotak/pkg/database"
 	"github.com/dfedick/gotak/pkg/logger"
 )
 
@@ -34,10 +39,13 @@ type HTTPServer struct {
 	entityService    handlers.EntityService
 	chatHandlers     *handlers.ChatHandlers
 	positionHandlers *handlers.PositionHandlers
+	simpleAuthHandlers *handlers.SimpleAuthHandlers
+	missionHandlers  *mission.Handlers
+	authMiddleware   *auth.Middleware
 }
 
 // NewHTTPServer creates a new HTTP server instance
-func NewHTTPServer(cfg *config.ServerConfig, log *logger.Logger, chatService *chat.Service, positionService PositionService) *HTTPServer {
+func NewHTTPServer(cfg *config.ServerConfig, log *logger.Logger, chatService *chat.Service, positionService PositionService, db *sqlx.DB) *HTTPServer {
 	router := mux.NewRouter()
 	
 	// Create WebSocket hub
@@ -52,6 +60,37 @@ func NewHTTPServer(cfg *config.ServerConfig, log *logger.Logger, chatService *ch
 	// Create position handlers
 	positionHandlers := handlers.NewPositionHandlers(positionService, log)
 	
+	// Create auth system components
+	var simpleAuthHandlers *handlers.SimpleAuthHandlers
+	var authMiddleware *auth.Middleware
+	var missionHandlers *mission.Handlers
+	
+	if db != nil {
+		// Create simplified auth service
+		jwtConfig := auth.JWTConfig{
+			SecretKey:  "your-secret-key-change-in-production", // TODO: Load from config
+			AccessTTL:  24 * time.Hour,
+			RefreshTTL: 7 * 24 * time.Hour,
+			Issuer:     "gotak-server",
+		}
+		
+		simpleAuthService := auth.NewSimpleAuthService(db, jwtConfig, log)
+		
+		// Create simple auth handlers
+		simpleAuthHandlers = handlers.NewSimpleAuthHandlers(simpleAuthService, log)
+		
+		// Create auth middleware
+		tokenStorage := auth.NewInMemoryTokenStorage()
+		jwtManager := auth.NewJWTManager(jwtConfig, tokenStorage)
+		authMiddleware = auth.NewMiddleware(jwtManager, log)
+		
+		// Create mission service and handlers
+		eventPublisher := events.NewSimplePublisher(log)
+		dbAdapter := database.NewSQLXAdapter(db)
+		missionService := mission.NewService(dbAdapter, log, eventPublisher)
+		missionHandlers = mission.NewHandlers(missionService, log)
+	}
+	
 	httpServer := &HTTPServer{
 		router:           router,
 		config:           cfg,
@@ -60,6 +99,9 @@ func NewHTTPServer(cfg *config.ServerConfig, log *logger.Logger, chatService *ch
 		entityService:    entityService,
 		chatHandlers:     chatHandlers,
 		positionHandlers: positionHandlers,
+		simpleAuthHandlers: simpleAuthHandlers,
+		missionHandlers:  missionHandlers,
+		authMiddleware:   authMiddleware,
 	}
 	
 	// Setup routes
@@ -85,6 +127,30 @@ func (h *HTTPServer) setupRoutes() {
 	
 	// API v1 routes
 	api := h.router.PathPrefix("/api/v1").Subrouter()
+	
+	// Auth routes (public - no auth required)
+	if h.simpleAuthHandlers != nil {
+		api.HandleFunc("/auth/register", h.simpleAuthHandlers.Register).Methods("POST")
+		api.HandleFunc("/auth/login", h.simpleAuthHandlers.Login).Methods("POST")
+		api.HandleFunc("/auth/refresh", h.simpleAuthHandlers.RefreshToken).Methods("POST")
+		api.HandleFunc("/auth/forgot-password", h.simpleAuthHandlers.ForgotPassword).Methods("POST")
+		api.HandleFunc("/auth/reset-password", h.simpleAuthHandlers.ResetPassword).Methods("POST")
+		
+		// Protected auth routes
+		api.HandleFunc("/auth/logout", h.simpleAuthHandlers.Logout).Methods("POST")
+		api.HandleFunc("/auth/me", h.simpleAuthHandlers.GetCurrentUser).Methods("GET")
+		api.HandleFunc("/auth/change-password", h.simpleAuthHandlers.ChangePassword).Methods("PUT")
+		
+		// Add OPTIONS handlers for auth routes
+		api.HandleFunc("/auth/register", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/login", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/refresh", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/forgot-password", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/reset-password", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/logout", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/me", handlePreflight).Methods("OPTIONS")
+		api.HandleFunc("/auth/change-password", handlePreflight).Methods("OPTIONS")
+	}
 	
 	// Entity endpoints
 	api.HandleFunc("/entities", handlers.HandleGetEntities(h.entityService, h.logger)).Methods("GET")
@@ -114,6 +180,11 @@ func (h *HTTPServer) setupRoutes() {
 	api.HandleFunc("/positions/{entityId}", h.positionHandlers.GetPosition).Methods("GET")
 	api.HandleFunc("/positions/{entityId}", h.positionHandlers.DeletePosition).Methods("DELETE")
 	api.HandleFunc("/positions/{entityId}/trail", h.positionHandlers.GetPositionTrail).Methods("GET")
+	
+	// Mission endpoints - register routes if mission handlers are available
+	if h.missionHandlers != nil {
+		h.missionHandlers.RegisterRoutes(api)
+	}
 	
 	// Handle preflight requests
 	api.HandleFunc("/entities", handlePreflight).Methods("OPTIONS")
