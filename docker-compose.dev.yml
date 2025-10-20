@@ -84,17 +84,11 @@ services:
 
   # GoTAK Server
   gotak-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - VERSION=dev-docker
-        - BUILD_TIME=dev
-        - GIT_COMMIT=dev
+    image: gotak/server:latest  # Use newly built image
     container_name: gotak-server-dev
     ports:
       - "8090:8080"  # HTTP API
-      - "8087:8087"  # TAK TCP/UDP
+      - "8088:8087"  # TAK TCP/UDP (moved from 8087)
       - "8089:8089"  # TAK TLS
     environment:
       - GIN_MODE=debug
@@ -136,16 +130,14 @@ services:
 
   # GoTAK Web UI
   web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
+    image: gotak/web:latest  # Use newly built image
     container_name: gotak-web-dev
     ports:
-      - "8080:80"
+      - "8087:80"  # Web UI on port 8087 as requested
     environment:
-      - GOTAK_SERVER_URL=ws://localhost:8087
+      - GOTAK_SERVER_URL=ws://localhost:8088  # Updated for new TAK port
       - GOTAK_API_URL=http://localhost:8090
-      - GOTAK_WS_URL=ws://localhost:8087/ws
+      - GOTAK_WS_URL=ws://localhost:8088/ws  # Updated for new TAK port
       - MAP_DEFAULT_LAT=38.9072
       - MAP_DEFAULT_LNG=-77.0369
       - MAP_DEFAULT_ZOOM=12
