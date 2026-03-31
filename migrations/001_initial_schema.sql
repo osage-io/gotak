@@ -334,7 +334,7 @@ VALUES (
     '00000000-0000-0000-0000-000000000001',
     'admin',
     'admin@gotak.local',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj2Yy.U8xOEW', -- admin123
+    '$2a$10$QVVSQmJPalYzWEd2LlcG4u0VqXuv7nH/fObMH68/8ISpLUD4zzwae', -- bcrypt hash of 'admin123'
     'System',
     'Administrator',
     'admin',

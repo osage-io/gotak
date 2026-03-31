@@ -108,10 +108,6 @@ job "gotak-redis" {
           "--dir", "/data"
         ]
 
-        # Health check command
-        healthchecks {
-          disable = false
-        }
       }
 
       # Environment template (for Vault integration in production)

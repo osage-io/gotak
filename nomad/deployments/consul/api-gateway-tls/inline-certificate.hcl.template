@@ -1,0 +1,22 @@
+# Consul Inline Certificate Configuration Entry
+# This stores the wildcard certificate for *.demoland.io in Consul
+# The actual certificate content will be injected by the setup script
+
+Kind = "inline-certificate"
+Name = "demoland-wildcard-cert"
+
+# Certificate chain (fullchain.crt content goes here)
+# This will be replaced by the setup script with actual certificate content
+Certificate = <<EOF
+-----BEGIN CERTIFICATE-----
+REPLACE_WITH_CERTIFICATE_CONTENT
+-----END CERTIFICATE-----
+EOF
+
+# Private key content goes here
+# This will be replaced by the setup script with actual key content
+PrivateKey = <<EOF
+-----BEGIN PRIVATE KEY-----
+REPLACE_WITH_PRIVATE_KEY_CONTENT
+-----END PRIVATE KEY-----
+EOF

@@ -87,7 +87,7 @@ const Login: React.FC = () => {
     } else {
       // Try actual API if available
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('/api/v1/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -101,7 +101,10 @@ const Login: React.FC = () => {
 
         if (response.ok) {
           const data = await response.json();
-          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('authToken', data.access_token);
+          if (data.refresh_token) {
+            localStorage.setItem('refreshToken', data.refresh_token);
+          }
           if (formData.rememberMe) {
             localStorage.setItem('rememberUsername', formData.username);
           } else {

@@ -109,19 +109,13 @@ job "gotak-postgres" {
       config {
         image = "postgis/postgis:${var.postgres_image_tag}"
         ports = ["db"]
-        
-        # Environment variables
-        environment = {
-          POSTGRES_DB       = var.db_name
-          POSTGRES_USER     = var.db_user
-          POSTGRES_PASSWORD = "tactical_secure_pass"  # In production, use Vault template
-          PGDATA           = "/var/lib/postgresql/data/pgdata"
-        }
+      }
 
-        # Health check command
-        healthchecks {
-          disable = false
-        }
+      env {
+        POSTGRES_DB       = var.db_name
+        POSTGRES_USER     = var.db_user
+        POSTGRES_PASSWORD = "tactical_secure_pass"  # In production, use Vault template
+        PGDATA            = "/var/lib/postgresql/data/pgdata"
       }
 
       # Environment template (for Vault integration in production)

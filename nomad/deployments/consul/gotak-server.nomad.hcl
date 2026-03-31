@@ -105,6 +105,7 @@ job "gotak-server" {
   meta {
     service = "gotak-server"
     version = var.image_tag
+    rebuild = "2026-02-03-v4-frontend-api-fix"
   }
 
   group "server" {
@@ -116,7 +117,6 @@ job "gotak-server" {
       min_healthy_time = "30s"
       healthy_deadline = "5m"
       auto_revert      = true
-      canary           = 1
     }
 
     # Restart policy
@@ -129,23 +129,19 @@ job "gotak-server" {
 
     # Network configuration
     network {
+      mode = "bridge"
+
       # CoT TCP port
       port "cot" {
         static = 8087
         to     = 8087
       }
 
-      # CoT UDP port  
-      port "cot_udp" {
-        static = 8087
-        to     = 8087
-      }
-
-      # CoT TLS port
-      port "cot_tls" {
-        static = 8089
-        to     = 8089
-      }
+      # CoT TLS port (reserved for future use when TLS is enabled)
+      # port "cot_tls" {
+      #   static = 8089
+      #   to     = 8089
+      # }
 
       # API/Web port
       port "api" {
@@ -154,36 +150,62 @@ job "gotak-server" {
       }
     }
 
+    # API Service with Connect sidecar
+    service {
+      name = "gotak-api"
+      port = "8080"
+      tags = [
+        "api",
+        "http",
+        "tactical",
+        "version-${var.image_tag}"
+      ]
+
+      check {
+        name     = "api-health"
+        type     = "http"
+        path     = "/health"
+        interval = "30s"
+        timeout  = "5s"
+        expose   = true
+      }
+
+      connect {
+        sidecar_service {
+          proxy {
+            local_service_port = 8080
+          }
+        }
+      }
+    }
+
+    # CoT TCP Service with Connect sidecar
+    service {
+      name = "gotak-cot"
+      port = "8087"
+      tags = [
+        "tak",
+        "cot-tcp",
+        "tactical",
+        "version-${var.image_tag}"
+      ]
+
+      connect {
+        sidecar_service {
+          proxy {
+            local_service_port = 8087
+          }
+        }
+      }
+    }
+
     task "server" {
       driver = "docker"
 
       config {
-        image = "${var.registry_url}/${var.registry_namespace}/server:${var.image_tag}"
-        ports = ["cot", "cot_udp", "cot_tls", "api"]
-        
-        # Environment variables
-        environment = {
-          GIN_MODE               = "release"
-          GOTAK_CONFIG_PATH     = "/local/server.yaml"
-          GOTAK_LOG_LEVEL       = var.log_level
-          GOTAK_DATA_DIR        = "/app/data"
-          GOTAK_LOG_DIR         = "/app/logs"
-          
-          # Database
-          DB_USER               = var.db_user
-          DB_NAME               = var.db_name
-          DB_PASSWORD           = "tactical_secure_pass"  # Use Vault in production
-          
-          # Redis
-          REDIS_PASSWORD        = "tactical_cache_pass"   # Use Vault in production
-          
-          # Feature toggles
-          ENABLE_TLS            = var.enable_tls
-          ENABLE_DEBUG          = var.enable_debug
-          ENABLE_METRICS        = var.enable_metrics
-          ENABLE_AUTH           = var.enable_auth
-          LOG_LEVEL             = var.log_level
-        }
+        image              = "thefed/gotak-server:v5-202602031429"
+        force_pull         = false
+        ports              = ["cot", "api"]
 
         # Volume mounts for logs
         mount {
@@ -200,6 +222,43 @@ job "gotak-server" {
         }
       }
 
+      env {
+        GIN_MODE           = "release"
+        GOTAK_CONFIG_PATH  = "/local/server.yaml"
+        GOTAK_LOG_LEVEL    = var.log_level
+        GOTAK_DATA_DIR     = "/app/data"
+        GOTAK_LOG_DIR      = "/app/logs"
+        GOTAK_STANDALONE   = "true"  # Skip migrations - they're already applied
+        MIGRATIONS_DIR     = "/app/migrations"
+        
+        # Database - using container expected variables
+        POSTGRES_HOST      = "192.168.1.185"
+        POSTGRES_PORT      = "5432"
+        POSTGRES_USER      = var.db_user
+        POSTGRES_DB        = var.db_name
+        POSTGRES_PASSWORD  = "tactical_secure_pass"  # Use Vault in production
+        
+        # Legacy DB vars for config template
+        DB_USER            = var.db_user
+        DB_NAME            = var.db_name
+        DB_PASSWORD        = "tactical_secure_pass"
+        
+        # JWT Secret (required by container)
+        JWT_SECRET         = "dev-jwt-secret-change-in-production"
+        
+        # Redis
+        REDIS_HOST         = "192.168.1.185"
+        REDIS_PORT         = "6379"
+        REDIS_PASSWORD     = "tactical_cache_pass"   # Use Vault in production
+        
+        # Feature toggles
+        ENABLE_TLS         = var.enable_tls
+        ENABLE_DEBUG       = var.enable_debug
+        ENABLE_METRICS     = var.enable_metrics
+        ENABLE_AUTH        = var.enable_auth
+        LOG_LEVEL          = var.log_level
+      }
+
       # Configuration template
       template {
         data = <<-EOT
@@ -211,6 +270,7 @@ server:
   write_timeout: 30s
   idle_timeout: 120s
   max_header_bytes: 1048576
+  serve_static: true
 
 tak:
   tcp:
@@ -218,9 +278,9 @@ tak:
     address: "0.0.0.0"
     port: {{ env "NOMAD_PORT_cot" }}
   udp:
-    enabled: true
+    enabled: false
     address: "0.0.0.0"
-    port: {{ env "NOMAD_PORT_cot_udp" }}
+    port: 8088
   tls:
     enabled: {{ env "ENABLE_TLS" }}
     address: "0.0.0.0"
@@ -236,14 +296,13 @@ tak:
 database:
   host: "{{ range service "postgres" }}{{ .Address }}{{ end }}"
   port: {{ range service "postgres" }}{{ .Port }}{{ end }}
-  user: "{{ env "DB_USER" }}"
+  username: "{{ env "DB_USER" }}"
   password: "{{ env "DB_PASSWORD" }}"
-  name: "{{ env "DB_NAME" }}"
-  sslmode: "disable"
+  database: "{{ env "DB_NAME" }}"
+  ssl_mode: "disable"
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: 300s
-  conn_max_idle_time: 30s
 
 redis:
   host: "{{ range service "redis" }}{{ .Address }}{{ end }}"
@@ -312,93 +371,6 @@ EOT
       resources {
         cpu    = var.gotak_server_cpu
         memory = var.gotak_server_memory
-      }
-
-      # CoT TCP Service
-      service {
-        name = "gotak-cot"
-        port = "cot"
-        tags = [
-          "tak",
-          "cot-tcp", 
-          "tactical",
-          "version-${var.image_tag}"
-        ]
-
-        check {
-          name     = "cot-tcp"
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "3s"
-        }
-      }
-
-      # CoT UDP Service  
-      service {
-        name = "gotak-cot-udp"
-        port = "cot_udp"
-        tags = [
-          "tak",
-          "cot-udp",
-          "tactical", 
-          "version-${var.image_tag}"
-        ]
-
-        check {
-          name     = "cot-udp"
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "3s"
-        }
-      }
-
-      # CoT TLS Service
-      service {
-        name = "gotak-cot-tls"
-        port = "cot_tls"
-        tags = [
-          "tak",
-          "cot-tls",
-          "tactical",
-          "secure",
-          "version-${var.image_tag}"
-        ]
-
-        check {
-          name     = "cot-tls"
-          type     = "tcp"
-          interval = "10s"
-          timeout  = "3s"
-        }
-      }
-
-      # API Service
-      service {
-        name = "gotak-api"
-        port = "api"
-        tags = [
-          "api",
-          "http",
-          "tactical",
-          "version-${var.image_tag}"
-        ]
-
-        check {
-          name     = "api-health"
-          type     = "http"
-          path     = "/health"
-          interval = "30s"
-          timeout  = "5s"
-        }
-
-        # Web UI static files check
-        check {
-          name     = "web-ui"
-          type     = "http"
-          path     = "/"
-          interval = "60s"
-          timeout  = "5s"
-        }
       }
     }
   }

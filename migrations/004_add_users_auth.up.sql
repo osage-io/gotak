@@ -92,7 +92,7 @@ INSERT INTO users (username, email, password_hash, role, callsign, active)
 VALUES (
     'admin',
     'admin@gotak.local',
-    '$2a$10$YQXrVMhfPtdVvVQQXKhZhOzGxPC3V1lGezVqUH6R.DJxwWML5kD5a', -- bcrypt hash of 'admin123'
+    '$2a$10$QVVSQmJPalYzWEd2LlcG4u0VqXuv7nH/fObMH68/8ISpLUD4zzwae', -- bcrypt hash of 'admin123'
     'admin',
     'ADMIN',
     true

@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/dfedick/gotak/internal/auth"
 	"github.com/dfedick/gotak/internal/user"
 	"github.com/dfedick/gotak/pkg/logger"
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 // AuthHandlers handles authentication-related HTTP endpoints
@@ -33,7 +33,7 @@ func NewAuthHandlers(authService *auth.AuthService, userRepo *user.Repository, l
 // POST /api/v1/auth/register
 func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 	var req auth.RegisterRequest
-	
+
 	// Parse request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.sendError(w, http.StatusBadRequest, "Invalid request body")
@@ -56,7 +56,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Send success response
 	h.sendJSON(w, http.StatusCreated, map[string]interface{}{
-		"message": "User registered successfully",
+		"message":  "User registered successfully",
 		"username": req.Username,
 	})
 }
@@ -65,7 +65,7 @@ func (h *AuthHandlers) Register(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/auth/login
 func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 	var req auth.LoginRequest
-	
+
 	// Parse request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.sendError(w, http.StatusBadRequest, "Invalid request body")
@@ -90,7 +90,7 @@ func (h *AuthHandlers) Login(w http.ResponseWriter, r *http.Request) {
 			h.sendError(w, http.StatusForbidden, "Account is not active")
 			return
 		}
-		
+
 		h.logger.Error().Err(err).Msg("Authentication failed")
 		h.sendError(w, http.StatusInternalServerError, "Authentication failed")
 		return
@@ -203,7 +203,7 @@ func (h *AuthHandlers) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req auth.PasswordChangeRequest
-	
+
 	// Parse request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.sendError(w, http.StatusBadRequest, "Invalid request body")
@@ -346,9 +346,16 @@ func (h *AuthHandlers) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/api/v1/auth/refresh", h.RefreshToken).Methods("POST")
 	router.HandleFunc("/api/v1/auth/forgot-password", h.ForgotPassword).Methods("POST")
 	router.HandleFunc("/api/v1/auth/reset-password", h.ResetPassword).Methods("POST")
-	
+
 	// Protected routes (require auth)
 	router.HandleFunc("/api/v1/auth/logout", h.Logout).Methods("POST")
 	router.HandleFunc("/api/v1/auth/me", h.GetCurrentUser).Methods("GET")
 	router.HandleFunc("/api/v1/auth/change-password", h.ChangePassword).Methods("PUT")
+
+	// Alias routes without /v1/ for frontend compatibility
+	router.HandleFunc("/api/auth/register", h.Register).Methods("POST")
+	router.HandleFunc("/api/auth/login", h.Login).Methods("POST")
+	router.HandleFunc("/api/auth/refresh", h.RefreshToken).Methods("POST")
+	router.HandleFunc("/api/auth/logout", h.Logout).Methods("POST")
+	router.HandleFunc("/api/auth/me", h.GetCurrentUser).Methods("GET")
 }

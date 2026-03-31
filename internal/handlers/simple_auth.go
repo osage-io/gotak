@@ -147,7 +147,6 @@ func (h *SimpleAuthHandlers) GetCurrentUser(w http.ResponseWriter, r *http.Reque
 		"username": user.Username,
 		"email":    user.Email,
 		"role":     user.Role,
-		"callsign": user.Callsign,
 		"active":   user.Active,
 	})
 }

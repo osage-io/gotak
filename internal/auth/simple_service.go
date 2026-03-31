@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/dfedick/gotak/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/dfedick/gotak/pkg/logger"
 )
 
 // SimpleAuthService handles authentication with the existing database schema
@@ -24,7 +24,7 @@ type SimpleAuthService struct {
 func NewSimpleAuthService(db *sqlx.DB, jwtConfig JWTConfig, logger *logger.Logger) *SimpleAuthService {
 	tokenStorage := NewInMemoryTokenStorage()
 	jwtManager := NewJWTManager(jwtConfig, tokenStorage)
-	
+
 	return &SimpleAuthService{
 		db:         db,
 		jwtManager: jwtManager,
@@ -36,7 +36,7 @@ func NewSimpleAuthService(db *sqlx.DB, jwtConfig JWTConfig, logger *logger.Logge
 func (s *SimpleAuthService) Register(ctx context.Context, req *SimpleRegisterRequest) (*SimpleUser, error) {
 	// Check if user exists
 	var count int
-	err := s.db.GetContext(ctx, &count, 
+	err := s.db.GetContext(ctx, &count,
 		"SELECT COUNT(*) FROM users WHERE username = $1 OR email = $2",
 		req.Username, req.Email)
 	if err != nil {
@@ -59,18 +59,18 @@ func (s *SimpleAuthService) Register(ctx context.Context, req *SimpleRegisterReq
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 		Role:         "user", // Default role
-		Callsign:     req.Callsign,
 		Active:       true,
+		IsVerified:   false,
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
 	}
 
 	// Insert user
 	query := `
-		INSERT INTO users (id, username, email, password_hash, role, callsign, active, created_at, updated_at)
-		VALUES (:id, :username, :email, :password_hash, :role, :callsign, :active, :created_at, :updated_at)
+		INSERT INTO users (id, username, email, password_hash, role, is_active, is_verified, created_at, updated_at)
+		VALUES (:id, :username, :email, :password_hash, :role, :is_active, :is_verified, :created_at, :updated_at)
 	`
-	
+
 	_, err = s.db.NamedExecContext(ctx, query, user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -121,7 +121,7 @@ func (s *SimpleAuthService) Login(ctx context.Context, req *SimpleLoginRequest) 
 	// Update last login
 	now := time.Now()
 	_, err = s.db.ExecContext(ctx,
-		"UPDATE users SET last_login = $1 WHERE id = $2",
+		"UPDATE users SET last_login_at = $1 WHERE id = $2",
 		now, user.ID)
 	if err != nil {
 		s.logger.Error().Err(err).Msg("Failed to update last login")
@@ -132,8 +132,8 @@ func (s *SimpleAuthService) Login(ctx context.Context, req *SimpleLoginRequest) 
 	tokenPair, err := s.jwtManager.GenerateTokenPair(
 		user.ID.String(),
 		user.Username,
-		[]string{user.Role},    // Use single role as array
-		[]string{},              // No permissions in simple schema
+		[]string{user.Role}, // Use single role as array
+		[]string{},          // No permissions in simple schema
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tokens: %w", err)
