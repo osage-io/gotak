@@ -34,7 +34,7 @@ GoTAK is a compatible TAK server implementation that provides situational awaren
 
 ```bash
 # Clone the repository
-git clone https://github.com/dfedick/gotak
+git clone https://github.com/osage-io/gotak
 cd gotak
 
 # Start development environment (PostgreSQL, Redis, NATS, etc.)
