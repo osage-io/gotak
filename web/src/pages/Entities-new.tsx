@@ -7,6 +7,73 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Icon } from '../components/ui/Icon';
 import './Entities-new.css';
 
+// --- Vault PKI device certificates (DEMO ONLY) ----------------------------
+// Issue / revoke per-device mTLS client certs from Vault's PKI engine. As with
+// the rest of the demo we talk to Vault directly with the dev root token — do
+// NOT ship a root token in frontend code outside a throwaway demo.
+const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_TOKEN = 'root';
+const PKI_ROLE = 'gotak-device';
+const CERT_TTL = '168h'; // 7 days
+const CERT_TTL_LABEL = '7 days';
+const CERTS_STORAGE_KEY = 'gotak_device_certs';
+
+interface DeviceCert {
+  serial: string;
+  commonName: string;
+  certificate: string;   // PEM
+  privateKey: string;    // PEM
+  issuingCa: string;     // PEM
+  expiration: number;    // unix seconds
+  issuedAt: number;      // unix seconds (client clock)
+  fingerprint: string;   // SHA-256, colon-separated hex
+  revoked: boolean;
+}
+
+// Derive a stable cert common name from a device callsign.
+const deviceCommonName = (callsign: string) =>
+  `${callsign.replace(/[^A-Za-z0-9.-]/g, '-')}.device.gotak.local`;
+
+async function vaultPki(path: string, body?: unknown): Promise<any> {
+  const res = await fetch(`${VAULT_ADDR}/v1/${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'X-Vault-Token': VAULT_TOKEN, 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = json?.errors?.join?.(', ') || `HTTP ${res.status}`;
+    throw new Error(`Vault PKI: ${msg}`);
+  }
+  return json;
+}
+
+// SHA-256 fingerprint of the certificate DER, formatted like openssl.
+async function certFingerprint(pem: string): Promise<string> {
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  const der = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const hash = await crypto.subtle.digest('SHA-256', der);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0').toUpperCase())
+    .join(':');
+}
+
+async function issueDeviceCert(callsign: string): Promise<DeviceCert> {
+  const commonName = deviceCommonName(callsign);
+  const { data } = await vaultPki(`pki/issue/${PKI_ROLE}`, { common_name: commonName, ttl: CERT_TTL });
+  return {
+    serial: data.serial_number,
+    commonName,
+    certificate: data.certificate,
+    privateKey: data.private_key,
+    issuingCa: data.issuing_ca,
+    expiration: data.expiration,
+    issuedAt: Math.floor(Date.now() / 1000),
+    fingerprint: await certFingerprint(data.certificate),
+    revoked: false,
+  };
+}
+
 interface Entity {
   id: string;
   callsign: string;
@@ -45,6 +112,42 @@ type EntityFilter = 'all' | 'personnel' | 'drones' | 'sensors' | 'vehicles' | 'f
 const EntitiesNew: React.FC = () => {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
+  // Per-entity device certificates (keyed by entity id), issued from Vault PKI.
+  const [certs, setCerts] = useState<Record<string, DeviceCert>>({});
+  const [certBusy, setCertBusy] = useState(false);
+  const [certError, setCertError] = useState<string | null>(null);
+  // Entity for which the "Issue Certificate" security dialog is open.
+  const [issueDialogEntity, setIssueDialogEntity] = useState<Entity | null>(null);
+
+  // Load persisted certs on mount, then reconcile each against Vault so the
+  // indicator reflects reality (revoked/expired) — survives page refresh.
+  useEffect(() => {
+    let saved: Record<string, DeviceCert> = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(CERTS_STORAGE_KEY) || '{}');
+    } catch { saved = {}; }
+    if (Object.keys(saved).length === 0) return;
+    setCerts(saved);
+
+    // Best-effort: ask Vault about each serial; mark revoked if Vault says so.
+    (async () => {
+      const updated: Record<string, DeviceCert> = { ...saved };
+      let changed = false;
+      await Promise.all(Object.entries(saved).map(async ([id, cert]) => {
+        try {
+          const { data } = await vaultPki(`pki/cert/${cert.serial}`);
+          const revoked = !!data.revocation_time && data.revocation_time !== 0;
+          if (revoked !== cert.revoked) { updated[id] = { ...cert, revoked }; changed = true; }
+        } catch { /* leave as-is if Vault is unreachable */ }
+      }));
+      if (changed) setCerts(updated);
+    })();
+  }, []);
+
+  // Persist certs whenever they change.
+  useEffect(() => {
+    try { localStorage.setItem(CERTS_STORAGE_KEY, JSON.stringify(certs)); } catch { /* ignore */ }
+  }, [certs]);
   const [view, setView] = useState<EntityView>('grid');
   const [filter, setFilter] = useState<EntityFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -458,8 +561,63 @@ const EntitiesNew: React.FC = () => {
     return filtered;
   }, [entities, filter, showOffline, searchQuery]);
 
+  // Certificate posture for an entity, for the subtle list/grid indicator.
+  const certState = useCallback((entityId: string): 'secure' | 'revoked' | 'unsecured' => {
+    const c = certs[entityId];
+    if (!c) return 'unsecured';
+    return c.revoked ? 'revoked' : 'secure';
+  }, [certs]);
+
+  const certIndicatorMeta = {
+    secure: { icon: 'lock', title: 'Secured — Vault-issued certificate active' },
+    revoked: { icon: 'unlock', title: 'Certificate revoked — not secured' },
+    unsecured: { icon: 'unlock', title: 'No certificate issued' },
+  } as const;
+
+  // --- Device certificate actions (Vault PKI) ---
+  const handleIssueCert = useCallback(async (entity: Entity) => {
+    setCertBusy(true);
+    setCertError(null);
+    try {
+      const cert = await issueDeviceCert(entity.callsign);
+      setCerts(prev => ({ ...prev, [entity.id]: cert }));
+    } catch (err) {
+      setCertError(err instanceof Error ? err.message : 'Failed to issue certificate');
+    } finally {
+      setCertBusy(false);
+    }
+  }, []);
+
+  const handleRevokeCert = useCallback(async (entityId: string) => {
+    const cert = certs[entityId];
+    if (!cert) return;
+    setCertBusy(true);
+    setCertError(null);
+    try {
+      await vaultPki('pki/revoke', { serial_number: cert.serial });
+      setCerts(prev => ({ ...prev, [entityId]: { ...cert, revoked: true } }));
+    } catch (err) {
+      setCertError(err instanceof Error ? err.message : 'Failed to revoke certificate');
+    } finally {
+      setCertBusy(false);
+    }
+  }, [certs]);
+
+  const handleDownloadBundle = useCallback((cert: DeviceCert) => {
+    const bundle =
+      `# GoTAK device certificate for ${cert.commonName}\n` +
+      `# serial: ${cert.serial}\n\n` +
+      `${cert.certificate.trim()}\n\n${cert.privateKey.trim()}\n\n${cert.issuingCa.trim()}\n`;
+    const url = URL.createObjectURL(new Blob([bundle], { type: 'application/x-pem-file' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${cert.commonName}.pem`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
   // Get selected entity details
-  const selectedEntityDetails = selectedEntity 
+  const selectedEntityDetails = selectedEntity
     ? entities.find(e => e.id === selectedEntity)
     : null;
 
@@ -599,10 +757,16 @@ const EntitiesNew: React.FC = () => {
                     >
                       <Icon name={getEntityIcon(entity)} size={24} />
                     </div>
-                    <div 
+                    <div
                       className="entity-status"
                       style={{ backgroundColor: getStatusColor(entity.status) }}
                     />
+                    <span
+                      className={`cert-indicator ${certState(entity.id)}`}
+                      title={certIndicatorMeta[certState(entity.id)].title}
+                    >
+                      <Icon name={certIndicatorMeta[certState(entity.id)].icon} size={12} />
+                    </span>
                   </div>
 
                   <div className="entity-card-body">
@@ -682,7 +846,15 @@ const EntitiesNew: React.FC = () => {
                           <Icon name={getEntityIcon(entity)} size={16} />
                         </div>
                       </td>
-                      <td className="callsign">{entity.callsign}</td>
+                      <td className="callsign">
+                        <span
+                          className={`cert-indicator ${certState(entity.id)}`}
+                          title={certIndicatorMeta[certState(entity.id)].title}
+                        >
+                          <Icon name={certIndicatorMeta[certState(entity.id)].icon} size={12} />
+                        </span>
+                        {entity.callsign}
+                      </td>
                       <td>{entity.team}</td>
                       <td>{entity.role}</td>
                       <td>
@@ -958,6 +1130,79 @@ const EntitiesNew: React.FC = () => {
                 </div>
               )}
 
+              {/* Security / Device Certificate (Vault PKI) */}
+              <div className="details-section">
+                <h3>Security</h3>
+                {(() => {
+                  const cert = certs[selectedEntityDetails.id];
+                  if (!cert) {
+                    return (
+                      <div className="cert-block">
+                        <span className="cert-badge none">
+                          <Icon name="unlock" size={14} /> No Certificate
+                        </span>
+                        <p className="cert-help">
+                          Issue an mTLS client certificate from Vault PKI for this device.
+                        </p>
+                        <button
+                          className="btn-cert"
+                          disabled={certBusy}
+                          onClick={() => setIssueDialogEntity(selectedEntityDetails)}
+                        >
+                          <Icon name="shield" size={16} />
+                          {certBusy ? 'Issuing…' : 'Issue Certificate'}
+                        </button>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="cert-block">
+                      {cert.revoked ? (
+                        <span className="cert-badge revoked">
+                          <Icon name="alert-triangle" size={14} /> Revoked
+                        </span>
+                      ) : (
+                        <span className="cert-badge active">
+                          <Icon name="lock" size={14} /> Certificate Active
+                        </span>
+                      )}
+                      <dl className="cert-fields">
+                        <div><dt>Common Name</dt><dd>{cert.commonName}</dd></div>
+                        <div><dt>Serial</dt><dd className="mono">{cert.serial}</dd></div>
+                        <div><dt>Issued</dt><dd>{new Date(cert.issuedAt * 1000).toLocaleString()}</dd></div>
+                        <div><dt>Expires</dt><dd>{new Date(cert.expiration * 1000).toLocaleString()}</dd></div>
+                        <div><dt>SHA-256</dt><dd className="mono cert-fp">{cert.fingerprint}</dd></div>
+                      </dl>
+                      {cert.revoked ? (
+                        <button
+                          className="btn-cert"
+                          disabled={certBusy}
+                          onClick={() => setIssueDialogEntity(selectedEntityDetails)}
+                        >
+                          <Icon name="shield" size={16} />
+                          {certBusy ? 'Issuing…' : 'Re-issue Certificate'}
+                        </button>
+                      ) : (
+                        <div className="cert-actions">
+                          <button className="btn-secondary" onClick={() => handleDownloadBundle(cert)}>
+                            <Icon name="download" size={16} /> Download
+                          </button>
+                          <button
+                            className="btn-danger"
+                            disabled={certBusy}
+                            onClick={() => handleRevokeCert(selectedEntityDetails.id)}
+                          >
+                            <Icon name="alert-triangle" size={16} />
+                            {certBusy ? 'Revoking…' : 'Revoke'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                {certError && <div className="cert-error" role="alert">{certError}</div>}
+              </div>
+
               {/* Actions */}
               <div className="details-actions">
                 <button className="btn-secondary">
@@ -977,6 +1222,73 @@ const EntitiesNew: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Issue Certificate — duration + operational-security dialog */}
+      {issueDialogEntity && (
+        <div className="cert-dialog-overlay" onClick={() => !certBusy && setIssueDialogEntity(null)}>
+          <div className="cert-dialog" onClick={e => e.stopPropagation()}>
+            <div className="cert-dialog-header">
+              <span className="cert-dialog-shield"><Icon name="shield" size={22} /></span>
+              <div>
+                <h2>Issue Device Certificate</h2>
+                <p className="cert-dialog-device">
+                  {issueDialogEntity.callsign} • {issueDialogEntity.role} • {issueDialogEntity.team}
+                </p>
+              </div>
+            </div>
+
+            <div className="cert-dialog-body">
+              <div className="cert-dialog-duration">
+                <Icon name="lock" size={18} />
+                <div>
+                  <strong>Valid for {CERT_TTL_LABEL}</strong>
+                  <span>
+                    A short-lived mTLS client certificate will be issued from HashiCorp Vault and will
+                    auto-expire after {CERT_TTL_LABEL}. Short lifetimes limit exposure if a device is lost,
+                    captured, or compromised — re-issue before expiry to keep the unit trusted.
+                  </span>
+                </div>
+              </div>
+
+              <div className="cert-dialog-warning">
+                <Icon name="alert-triangle" size={18} />
+                <div>
+                  <strong>Secure communications are not optional on the tactical edge.</strong>
+                  <p>
+                    Every radio, drone, sensor, and handheld is a potential foothold for an adversary.
+                    A device certificate cryptographically proves this unit is who it claims to be — so
+                    spoofed contacts, intercepted positions, and rogue nodes cannot poison the common
+                    operating picture. An unsecured device is an unverified device: treat it as untrusted
+                    until a certificate is issued.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="cert-dialog-actions">
+              <button
+                className="btn-secondary"
+                disabled={certBusy}
+                onClick={() => setIssueDialogEntity(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-cert"
+                disabled={certBusy}
+                onClick={async () => {
+                  const target = issueDialogEntity;
+                  await handleIssueCert(target);
+                  setIssueDialogEntity(null);
+                }}
+              >
+                <Icon name="shield" size={16} />
+                {certBusy ? 'Issuing…' : `Issue Certificate (${CERT_TTL_LABEL})`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

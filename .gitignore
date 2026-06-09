@@ -132,3 +132,9 @@ temp/
 build/
 release/
 dist/
+
+# hashistack (local single-node Consul/Vault/Nomad dev runtime)
+hashistack/data/
+hashistack/logs/
+hashistack/run/
+hashistack/.rendered/

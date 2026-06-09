@@ -8,6 +8,37 @@ import { IntegrationLogos } from '../components/IntegrationLogos';
 import { Icon } from '../components/ui/Icon';
 import './Integrations.css';
 
+// --- Vault KV secrets engine — store the Anthropic API key (DEMO ONLY) -----
+// We talk to the local dev Vault directly with the root token, same as the rest
+// of the demo. Do NOT ship a root token in frontend code outside a demo.
+const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_TOKEN = 'root';
+const ANTHROPIC_KV_PATH = 'secret/data/gotak/anthropic'; // KV v2 data API path
+const ANTHROPIC_KV_DISPLAY = 'secret/gotak/anthropic';   // logical path (for display)
+
+// Write the API key to Vault's KV v2 engine; returns the new secret version.
+async function vaultStoreAnthropicKey(apiKey: string): Promise<number> {
+  const res = await fetch(`${VAULT_ADDR}/v1/${ANTHROPIC_KV_PATH}`, {
+    method: 'POST',
+    headers: { 'X-Vault-Token': VAULT_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: { api_key: apiKey } }),
+  });
+  if (!res.ok) throw new Error(`Vault write failed (HTTP ${res.status})`);
+  const json = await res.json();
+  return json?.data?.version ?? 0;
+}
+
+// Read the API key back from Vault KV v2. 404 => not stored yet.
+async function vaultReadAnthropicKey(): Promise<{ key: string; version: number | null }> {
+  const res = await fetch(`${VAULT_ADDR}/v1/${ANTHROPIC_KV_PATH}`, {
+    headers: { 'X-Vault-Token': VAULT_TOKEN },
+  });
+  if (res.status === 404) return { key: '', version: null };
+  if (!res.ok) throw new Error(`Vault read failed (HTTP ${res.status})`);
+  const json = await res.json();
+  return { key: json?.data?.data?.api_key || '', version: json?.data?.metadata?.version ?? null };
+}
+
 interface Integration {
   id: string;
   name: string;
@@ -51,6 +82,10 @@ const Integrations: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'cards'>('list');
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
+  // Vault KV storage status for the Anthropic key.
+  const [anthropicVault, setAnthropicVault] = useState<{ version: number | null; busy: boolean; error: string | null }>({
+    version: null, busy: false, error: null,
+  });
   const [vaultConfig, setVaultConfig] = useState<VaultConfig>({
     url: 'http://localhost:8200',
     namespace: '',
@@ -659,10 +694,24 @@ const Integrations: React.FC = () => {
     setSelectedIntegration(integration);
     setShowConfigModal(true);
     
-    // Load saved API key for Anthropic if available
+    // Load the Anthropic API key from Vault KV (migrate any legacy localStorage key).
     if (integration.id === 'anthropic') {
-      const savedKey = localStorage.getItem('anthropic_api_key') || '';
-      setAnthropicApiKey(savedKey);
+      setAnthropicVault({ version: null, busy: true, error: null });
+      vaultReadAnthropicKey()
+        .then(({ key, version }) => {
+          const legacy = localStorage.getItem('anthropic_api_key') || '';
+          if (!key && legacy) {
+            // Not in Vault yet but present locally — prefill so a Save migrates it.
+            setAnthropicApiKey(legacy);
+            setAnthropicVault({ version: null, busy: false, error: null });
+          } else {
+            setAnthropicApiKey(key);
+            setAnthropicVault({ version, busy: false, error: null });
+          }
+        })
+        .catch(err =>
+          setAnthropicVault({ version: null, busy: false, error: err instanceof Error ? err.message : 'Vault read failed' }),
+        );
     }
   };
 
@@ -683,23 +732,28 @@ const Integrations: React.FC = () => {
     console.log('Vault configuration saved successfully!', vaultConfig);
   };
 
-  // Handle Anthropic configuration save
-  const handleSaveAnthropicConfig = () => {
-    // Save API key to localStorage (in production, this would be saved securely to backend)
-    localStorage.setItem('anthropic_api_key', anthropicApiKey);
-    
-    // Update integration status
-    setIntegrations(prev => prev.map(int => 
-      int.id === 'anthropic' ? { ...int, status: anthropicApiKey ? 'connected' : 'available' } : int
-    ));
-    
-    // Update environment variable for the AI service
-    (window as any).VITE_ANTHROPIC_API_KEY = anthropicApiKey;
-    
-    setShowConfigModal(false);
-    
-    // Show success message
-    console.log('Anthropic API key saved');
+  // Handle Anthropic configuration save — store the key in Vault's KV engine.
+  const handleSaveAnthropicConfig = async () => {
+    setAnthropicVault(v => ({ ...v, busy: true, error: null }));
+    try {
+      const version = await vaultStoreAnthropicKey(anthropicApiKey);
+
+      // Key now lives in Vault — drop the legacy localStorage copy.
+      localStorage.removeItem('anthropic_api_key');
+      // Cache for the current session so the AI service can use it immediately.
+      (window as any).VITE_ANTHROPIC_API_KEY = anthropicApiKey;
+
+      // Keep the modal open with a visible confirmation instead of closing
+      // immediately — otherwise the "Stored in Vault" feedback flashes by and it
+      // looks like nothing was saved.
+      setAnthropicVault({ version, busy: false, error: null });
+      setIntegrations(prev => prev.map(int =>
+        int.id === 'anthropic' ? { ...int, status: anthropicApiKey ? 'connected' : 'available' } : int
+      ));
+      console.log(`Anthropic API key stored in Vault (${ANTHROPIC_KV_DISPLAY}, version ${version})`);
+    } catch (err) {
+      setAnthropicVault(v => ({ ...v, busy: false, error: err instanceof Error ? err.message : 'Vault write failed' }));
+    }
   };
 
   // Test connection
@@ -1295,10 +1349,23 @@ const Integrations: React.FC = () => {
                   </ul>
                 </div>
 
-                <div className="security-notice">
-                  <Icon name="shield" size={16} color="var(--color-warning)" />
-                  <span>Your API key is stored locally and never sent to our servers</span>
+                <div className={`security-notice${anthropicVault.version !== null ? ' success' : ''}`}>
+                  <Icon
+                    name={anthropicVault.version !== null ? 'check-circle' : 'lock'}
+                    size={16}
+                    color={anthropicVault.version !== null ? 'var(--color-success)' : 'var(--color-accent)'}
+                  />
+                  <span>
+                    {anthropicVault.busy
+                      ? 'Checking Vault…'
+                      : anthropicVault.version !== null
+                        ? `Stored in Vault — ${ANTHROPIC_KV_DISPLAY} (version ${anthropicVault.version}). Verify: vault kv get ${ANTHROPIC_KV_DISPLAY}`
+                        : `Will be stored in Vault's KV secrets engine at ${ANTHROPIC_KV_DISPLAY} — never kept in plaintext on our servers`}
+                  </span>
                 </div>
+                {anthropicVault.error && (
+                  <div className="vault-dialog-error" role="alert">Vault: {anthropicVault.error}</div>
+                )}
               </div>
 
               <div className="config-actions">
@@ -1329,12 +1396,12 @@ const Integrations: React.FC = () => {
               <button className="btn-cancel" onClick={() => setShowConfigModal(false)}>
                 Cancel
               </button>
-              <button 
-                className="btn-save" 
+              <button
+                className="btn-save"
                 onClick={handleSaveAnthropicConfig}
-                disabled={!anthropicApiKey}
+                disabled={!anthropicApiKey || anthropicVault.busy}
               >
-                Save Configuration
+                {anthropicVault.busy ? 'Saving to Vault…' : 'Save to Vault'}
               </button>
             </div>
           </div>

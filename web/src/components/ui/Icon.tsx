@@ -64,6 +64,15 @@ export const icons = {
     </svg>
   ),
 
+  wifi: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 8.82C7.88 4.18 16.12 4.18 22 8.82" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M5 12.55C8.97 9.4 15.03 9.4 19 12.55" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M8.5 16.05C10.65 14.34 13.35 14.34 15.5 16.05" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M12 20H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  ),
+
   // Security & Authentication
   lock: (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -245,6 +254,20 @@ export const icons = {
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
       <path d="M12 22V12M2 7L12 12L22 7M17 4.5L7 9.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+    </svg>
+  ),
+
+  plus: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ),
+
+  download: (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 15V19C21 20.1 20.1 21 19 21H5C3.9 21 3 20.1 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   ),
 

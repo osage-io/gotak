@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Icon } from './ui/Icon';
 import { Message } from '../types/comms';
 import aiService from '../services/aiService';
@@ -13,6 +14,8 @@ const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Vault-aware: the key may live only in Vault KV, which isConfigured() can't see.
+  const [configured, setConfigured] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -35,6 +38,13 @@ const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
       room: 'ai-intel'
     };
     setMessages([initialMessage]);
+  }, []);
+
+  // Check configuration against Vault (key may not be in localStorage).
+  useEffect(() => {
+    let active = true;
+    aiService.ensureConfigured().then(ok => { if (active) setConfigured(ok); });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -75,14 +85,21 @@ const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Failed to get AI response:', error);
-      setError('Connection to Intel Officer failed. Check secure comms channel.');
-      
-      // Add error message to chat
+    } catch (err) {
+      console.error('Failed to get AI response:', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      // Surface the real cause so the operator knows what to fix.
+      const authFailed = /401|authentication|invalid x-api-key|invalid.*key/i.test(msg);
+      const banner = authFailed
+        ? 'API key rejected by Anthropic. Update it in Integrations → Anthropic.'
+        : 'Connection to Intel Officer failed. Check secure comms channel.';
+      const chatMsg = authFailed
+        ? 'AUTH FAILURE: Anthropic rejected the API key (401). Reconfigure a valid key in Integrations → Anthropic.'
+        : `COMMS ERROR: ${msg || 'Unable to establish secure connection.'} Retry transmission.`;
+      setError(banner);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'COMMS ERROR: Unable to establish secure connection. Retry transmission.',
+        content: chatMsg,
         sender: 'System',
         timestamp: new Date().toISOString(),
         type: 'system',
@@ -135,7 +152,7 @@ const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
         )}
       </div>
 
-      {!aiService.isConfigured() && (
+      {!configured && (
         <div className="ai-chat-config-prompt">
           <div className="config-prompt-icon">
             <Icon name="settings" size={24} color="#ff6b35" />
@@ -179,7 +196,15 @@ const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
               <span className="message-sender">{message.sender}</span>
               <span className="message-time">{formatTime(message.timestamp)}</span>
             </div>
-            <div className="message-content">{message.content}</div>
+            <div className="message-content">
+              {message.sender === 'AI Intel Officer' ? (
+                <div className="markdown-body">
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                </div>
+              ) : (
+                message.content
+              )}
+            </div>
           </div>
         ))}
         {isLoading && (
@@ -208,12 +233,12 @@ const AIChat: React.FC<AIChatProps> = ({ onClose }) => {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
-          disabled={isLoading || !aiService.isConfigured()}
+          disabled={isLoading || !configured}
         />
         <button
           className="ai-chat-send"
           onClick={handleSendMessage}
-          disabled={!inputValue.trim() || isLoading || !aiService.isConfigured()}
+          disabled={!inputValue.trim() || isLoading || !configured}
         >
           <Icon name="send" size={20} color="#000000" />
         </button>

@@ -6,8 +6,15 @@ set -e
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+# Resolve the migrations dir robustly. In the container image the script lives at
+# /app/migrate.sh with migrations at /app/migrations, so PROJECT_ROOT would be "/"
+# and the old default produced "//migrations". Prefer a migrations dir next to the
+# script, then one level up (repo layout). An explicit MIGRATIONS_DIR env var wins.
+if [ -z "${MIGRATIONS_DIR:-}" ] && [ -d "$SCRIPT_DIR/migrations" ]; then
+    MIGRATIONS_DIR="$SCRIPT_DIR/migrations"
+fi
 MIGRATIONS_DIR="${MIGRATIONS_DIR:-$PROJECT_ROOT/migrations}"
-ROLLBACKS_DIR="${ROLLBACKS_DIR:-$PROJECT_ROOT/migrations/rollbacks}"
+ROLLBACKS_DIR="${ROLLBACKS_DIR:-$MIGRATIONS_DIR/rollbacks}"
 
 # Database configuration from environment
 DB_HOST="${POSTGRES_HOST:-localhost}"
@@ -142,7 +149,15 @@ get_applied_migrations() {
 
 # Get available migrations
 get_available_migrations() {
-    find "$MIGRATIONS_DIR" -name "*.sql" -type f | sort | while read -r file; do
+    # Only forward migrations in the top-level migrations dir. We must exclude:
+    #   - rollback/down files (*.down.sql, *_rollback.sql)
+    #   - the rollbacks/ subdirectory (hence -maxdepth 1)
+    # Otherwise a "*.down.sql" sorts before its matching "*.up.sql" and gets
+    # applied as if it were a forward migration, dropping tables before they
+    # exist and failing the whole migration run.
+    find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name "*.sql" \
+        ! -name "*.down.sql" ! -name "*_rollback.sql" \
+        | sort | while read -r file; do
         basename "$file" .sql
     done
 }

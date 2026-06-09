@@ -1022,3 +1022,222 @@
     font-size: 0.75rem;
   }
 }
+
+/* --- Device certificate section (Vault PKI) ------------------------------ */
+.cert-block { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+
+.cert-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-radius: 999px;
+}
+.cert-badge.active   { color: #052e16; background: #22c55e; }
+.cert-badge.revoked  { color: #fff; background: var(--color-error, #ef4444); }
+.cert-badge.none     { color: var(--color-warning, #f59e0b); background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); }
+
+.cert-help {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #c2c9d2);
+}
+
+.cert-fields {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+}
+.cert-fields > div {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.cert-fields dt {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #8b95a3);
+}
+.cert-fields dd {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-primary, #e8edf2);
+  word-break: break-all;
+}
+.cert-fields .mono {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.76rem;
+}
+.cert-fields .cert-fp { color: var(--color-text-secondary, #c2c9d2); }
+
+.btn-cert {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-text-inverse, #04221b);
+  background: var(--color-accent, #00d4aa);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.btn-cert:hover:not(:disabled) { background: var(--color-accent-hover, #00bfa0); }
+.btn-cert:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.cert-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.cert-error {
+  margin-top: 10px;
+  padding: 8px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.8rem;
+  color: var(--color-error, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+}
+
+/* --- Subtle per-device certificate indicator (grid + list) --------------- */
+.cert-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+/* Unsecured: muted, low-key — present but not alarming */
+.cert-indicator.unsecured {
+  color: var(--color-text-muted, #8b95a3);
+  background: rgba(255, 255, 255, 0.05);
+  opacity: 0.55;
+}
+/* Secure: green closed lock */
+.cert-indicator.secure {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.14);
+  opacity: 1;
+}
+/* Revoked: amber warning */
+.cert-indicator.revoked {
+  color: var(--color-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.14);
+  opacity: 1;
+}
+
+/* In the grid card header, sit the cert lock to the LEFT of the absolutely-
+   positioned status dot, with a clear gap so they don't read as one cluster. */
+.entity-card-header { position: relative; }
+.entity-card-header .cert-indicator {
+  position: absolute;
+  top: 0.8rem;
+  right: calc(1rem + 28px);
+  margin: 0;
+}
+
+/* In the list view, inline before the callsign text */
+td.callsign { display: flex; align-items: center; gap: 8px; }
+td.callsign .cert-indicator { width: 16px; height: 16px; }
+
+/* --- Issue Certificate security dialog ----------------------------------- */
+.cert-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.cert-dialog {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(20, 20, 25, 0.98);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.cert-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-divider, rgba(255, 255, 255, 0.07));
+}
+.cert-dialog-shield {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: var(--color-accent, #00d4aa);
+  background: var(--color-accent-dim, rgba(0, 212, 170, 0.14));
+}
+.cert-dialog-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8edf2);
+}
+.cert-dialog-device {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #8b95a3);
+}
+
+.cert-dialog-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.cert-dialog-duration,
+.cert-dialog-warning {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+}
+.cert-dialog-duration > :first-child,
+.cert-dialog-warning > :first-child { flex-shrink: 0; margin-top: 2px; }
+
+.cert-dialog-duration {
+  color: var(--color-text-secondary, #c2c9d2);
+  background: var(--color-accent-dim, rgba(0, 212, 170, 0.08));
+  border: 1px solid var(--color-border-accent, rgba(0, 212, 170, 0.25));
+}
+.cert-dialog-duration strong { display: block; margin-bottom: 4px; color: var(--color-accent, #00d4aa); font-size: 0.92rem; }
+.cert-dialog-duration span { font-size: 0.82rem; line-height: 1.55; }
+
+.cert-dialog-warning {
+  color: var(--color-text-secondary, #c2c9d2);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.cert-dialog-warning > :first-child { color: var(--color-warning, #f59e0b); }
+.cert-dialog-warning strong { display: block; margin-bottom: 6px; color: var(--color-text-primary, #f4f6f8); font-size: 0.9rem; }
+.cert-dialog-warning p { margin: 0; font-size: 0.82rem; line-height: 1.6; }
+
+.cert-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-divider, rgba(255, 255, 255, 0.07));
+}

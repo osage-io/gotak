@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/dfedick/gotak/internal/auth"
@@ -235,7 +236,30 @@ func (h *HTTPServer) setupRoutes() {
 			// Fallback to local development path
 			webDir = "./web/dist"
 		}
-		h.router.PathPrefix("/").Handler(http.FileServer(http.Dir(webDir)))
+		// SPA fallback: serve a real file when one exists (assets, index.html,
+		// favicon, …); otherwise hand the request to index.html so the React
+		// router can render client-side routes. Without this, refreshing on a
+		// deep link like /communications hits the file server, finds no file,
+		// and returns 404. API/ws/health routes are registered before this
+		// catch-all, so they still take precedence.
+		fileServer := http.FileServer(http.Dir(webDir))
+		indexPath := filepath.Join(webDir, "index.html")
+		h.router.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			reqPath := filepath.Join(webDir, filepath.Clean(r.URL.Path))
+			if info, err := os.Stat(reqPath); err == nil && !info.IsDir() {
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+			// Missing path: if it looks like a static asset (has a non-HTML file
+			// extension), return a real 404 rather than masking it as index.html
+			// — otherwise a missing .js/.css would be served as HTML and fail to
+			// parse. Extension-less paths are treated as client-side routes.
+			if ext := filepath.Ext(r.URL.Path); ext != "" && ext != ".html" {
+				http.NotFound(w, r)
+				return
+			}
+			http.ServeFile(w, r, indexPath)
+		})
 	}
 }
 

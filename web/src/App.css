@@ -3180,14 +3180,29 @@ div[class*="dashboard-container"],
 .message-item,
 .setting-card,
 .panel,
-.modal-content,
 .dropdown-menu {
   background: rgba(20, 20, 25, 0.4) !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 12px !important;
-  box-shadow: 
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Modal content must be effectively opaque. A modal can be taller than the
+   overlay's backdrop region (e.g. the long Vault config form), and backdrop-filter
+   doesn't reliably blur there, so the 0.4 fill let page text bleed through
+   ("text on top of text"). Keep the blur for the glass edge, near-opaque fill. */
+.modal-content {
+  background: rgba(20, 20, 25, 0.97) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -3209,7 +3224,7 @@ div[class*="dashboard-container"],
 }
 
 /* Glass Buttons - Transparent */
-button:not(.sidebar-toggle-btn):not(.nav-toggle-btn):not(.control-button),
+button:not(.sidebar-toggle-btn):not(.nav-toggle-btn):not(.control-button):not(.ai-chat-send),
 .btn,
 .action-btn {
   background: transparent !important;
@@ -3222,7 +3237,7 @@ button:not(.sidebar-toggle-btn):not(.nav-toggle-btn):not(.control-button),
   overflow: hidden;
 }
 
-button:hover:not(.sidebar-toggle-btn):not(.nav-toggle-btn):not(.control-button),
+button:hover:not(.sidebar-toggle-btn):not(.nav-toggle-btn):not(.control-button):not(.ai-chat-send),
 .btn:hover,
 .action-btn:hover {
   background: transparent !important;

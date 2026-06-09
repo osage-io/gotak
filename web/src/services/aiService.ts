@@ -1,5 +1,26 @@
 import { Message } from '../types/comms';
 
+// --- Vault KV secrets engine (DEMO ONLY) ----------------------------------
+// The Anthropic API key is stored in Vault (see the Integrations → Anthropic
+// modal). Read it from there at call time so the key lives in the secrets
+// engine rather than the browser. Demo uses the dev root token directly.
+const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_TOKEN = 'root';
+const ANTHROPIC_KV_PATH = 'secret/data/gotak/anthropic';
+
+async function readAnthropicKeyFromVault(): Promise<string> {
+  try {
+    const res = await fetch(`${VAULT_ADDR}/v1/${ANTHROPIC_KV_PATH}`, {
+      headers: { 'X-Vault-Token': VAULT_TOKEN },
+    });
+    if (!res.ok) return '';
+    const json = await res.json();
+    return json?.data?.data?.api_key || '';
+  } catch {
+    return '';
+  }
+}
+
 interface AIServiceConfig {
   apiKey: string;
   model?: string;
@@ -44,13 +65,25 @@ class AIService {
                   import.meta.env.VITE_ANTHROPIC_API_KEY || 
                   (window as any).VITE_ANTHROPIC_API_KEY || 
                   '';
-    this.model = config.model || 'claude-3-sonnet-20240229';
-    this.maxTokens = config.maxTokens || 1000;
+    this.model = config.model || 'claude-sonnet-4-6';
+    this.maxTokens = config.maxTokens || 2048;
+  }
+
+  // Resolve the key: Vault KV is the source of truth, then any locally-provided
+  // fallbacks (config / session cache / env).
+  private async resolveApiKey(): Promise<string> {
+    const fromVault = await readAnthropicKeyFromVault();
+    if (fromVault) {
+      this.apiKey = fromVault;
+      return fromVault;
+    }
+    return this.apiKey;
   }
 
   async sendMessage(userMessage: string, conversationHistory: Message[] = []): Promise<AIResponse> {
-    if (!this.apiKey) {
-      throw new Error('Anthropic API key not configured');
+    const apiKey = await this.resolveApiKey();
+    if (!apiKey) {
+      throw new Error('Anthropic API key not configured (store it in Vault via Integrations → Anthropic)');
     }
 
     try {
@@ -67,8 +100,10 @@ class AIService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01'
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          // Required for calling the Anthropic API directly from a browser.
+          'anthropic-dangerous-direct-browser-access': 'true'
         },
         body: JSON.stringify({
           model: this.model,
@@ -124,17 +159,25 @@ class AIService {
     return this.sendMessage(query);
   }
 
-  // Check if service is configured
+  // Check if service is configured (sync — only sees a locally-cached key).
   isConfigured(): boolean {
     return !!this.apiKey;
+  }
+
+  // Vault-aware configuration check: resolves the key from Vault KV (and caches
+  // it) so the UI knows the officer is configured even when the key only lives
+  // in Vault, not localStorage.
+  async ensureConfigured(): Promise<boolean> {
+    const key = await this.resolveApiKey();
+    return !!key;
   }
 }
 
 // Export singleton instance
 export const aiService = new AIService({
   apiKey: localStorage.getItem('anthropic_api_key') || import.meta.env.VITE_ANTHROPIC_API_KEY || '',
-  model: import.meta.env.VITE_AI_MODEL || 'claude-3-sonnet-20240229',
-  maxTokens: parseInt(import.meta.env.VITE_AI_MAX_TOKENS || '1000')
+  model: import.meta.env.VITE_AI_MODEL || 'claude-sonnet-4-6',
+  maxTokens: parseInt(import.meta.env.VITE_AI_MAX_TOKENS || '2048')
 });
 
 export default aiService;

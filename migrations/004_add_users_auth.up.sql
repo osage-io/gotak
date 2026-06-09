@@ -56,18 +56,20 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     attempted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create indexes for performance
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_active ON users(active);
-CREATE INDEX idx_sessions_user_id ON sessions(user_id);
-CREATE INDEX idx_sessions_token_hash ON sessions(token_hash);
-CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
-CREATE INDEX idx_password_reset_tokens_token_hash ON password_reset_tokens(token_hash);
-CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
-CREATE INDEX idx_login_attempts_ip_address ON login_attempts(ip_address);
-CREATE INDEX idx_login_attempts_username ON login_attempts(username);
-CREATE INDEX idx_login_attempts_attempted_at ON login_attempts(attempted_at);
+-- Create indexes for performance.
+-- IF NOT EXISTS so this is idempotent: the users table + some of its indexes are
+-- already created by 001_initial_schema, so unguarded CREATE INDEX would fail.
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(token_hash);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token_hash ON password_reset_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip_address ON login_attempts(ip_address);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_username ON login_attempts(username);
+CREATE INDEX IF NOT EXISTS idx_login_attempts_attempted_at ON login_attempts(attempted_at);
 
 -- Create trigger to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -78,12 +80,14 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply trigger to users table
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+-- Apply trigger to users table.
+-- CREATE OR REPLACE so this is idempotent: 001_initial_schema already creates an
+-- update_users_updated_at trigger. (Requires PostgreSQL 14+, image is PG 15.)
+CREATE OR REPLACE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Apply trigger to user_preferences table
-CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences
+CREATE OR REPLACE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert default admin user (password: admin123)

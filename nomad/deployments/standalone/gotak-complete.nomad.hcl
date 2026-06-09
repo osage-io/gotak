@@ -247,7 +247,10 @@ EOF
         GOTAK_LOG_LEVEL       = "info"
         GOTAK_DATA_DIR        = "/app/data"
         GOTAK_LOG_DIR         = "/app/logs"
-        
+        # migrate.sh lives at /app, so its computed PROJECT_ROOT is "/" and it
+        # defaults MIGRATIONS_DIR to "//migrations". Pin the real path instead.
+        MIGRATIONS_DIR        = "/app/migrations"
+
         # Database connection
         POSTGRES_HOST         = "hashinuc01"
         POSTGRES_PORT         = "5432"
@@ -347,14 +350,13 @@ security:
 logging:
   level: "{{ env "GOTAK_LOG_LEVEL" }}"
   format: "json"
-  output: 
-    - type: "file"
-      path: "{{ env "GOTAK_LOG_DIR" }}/gotak.log"
-      max_size: 100
-      max_backups: 5
-      max_age: 30
-      compress: true
-    - type: "stdout"
+  # The server's LoggingSettings.Output is a string ("stdout", "stderr", or a
+  # file path) — not a list. Keep it a scalar so the YAML parser is happy.
+  output: "stdout"
+  file: "{{ env "GOTAK_LOG_DIR" }}/gotak.log"
+  max_size: 100
+  max_backups: 5
+  max_age: 30
 
 # TAK Protocol Configuration
 tak:

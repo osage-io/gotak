@@ -10,6 +10,69 @@ import { Icon } from '../components/ui/Icon';
 import AIChat from '../components/AIChat';
 import './Communications.css';
 
+// --- Vault transit encryption (DEMO ONLY) ---------------------------------
+// For the demo we talk to the local Vault directly with the dev root token.
+// Do NOT ship a root token in frontend code outside a throwaway demo.
+const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_TOKEN = 'root';
+const DEFAULT_TRANSIT_KEY = 'gotak-comms';
+
+// Each channel gets its own transit key, so a channel is "Encrypted" exactly
+// when this key exists in Vault. The AI Intel Officer is treated as its own
+// channel so its comms can be secured the same way.
+const AI_OFFICER_ID = 'ai-officer';
+const channelKeyName = (roomId: string) => `gotak-comms-${roomId}`;
+
+// base64-encode a UTF-8 string the way Vault expects for transit plaintext
+function toBase64Utf8(str: string): string {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+// True if the named transit key exists in Vault (GET returns 200).
+async function vaultKeyExists(addr: string, token: string, keyName: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${addr}/v1/transit/keys/${encodeURIComponent(keyName)}`, {
+      headers: { 'X-Vault-Token': token },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Create the named transit key (no-op server-side if it already exists).
+async function vaultCreateKey(addr: string, token: string, keyName: string): Promise<void> {
+  const res = await fetch(`${addr}/v1/transit/keys/${encodeURIComponent(keyName)}`, {
+    method: 'POST',
+    headers: { 'X-Vault-Token': token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'aes256-gcm96' }),
+  });
+  if (!res.ok) throw new Error(`Vault create-key failed (HTTP ${res.status})`);
+}
+
+// Encrypt plaintext via Vault's transit engine, returning the "vault:v1:..."
+// ciphertext. Throws on any non-2xx response.
+async function vaultEncrypt(
+  plaintext: string,
+  keyName: string,
+  addr: string = VAULT_ADDR,
+  token: string = VAULT_TOKEN,
+): Promise<string> {
+  const res = await fetch(`${addr}/v1/transit/encrypt/${encodeURIComponent(keyName)}`, {
+    method: 'POST',
+    headers: {
+      'X-Vault-Token': token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ plaintext: toBase64Utf8(plaintext) }),
+  });
+  if (!res.ok) {
+    throw new Error(`Vault encrypt failed (HTTP ${res.status})`);
+  }
+  const data = await res.json();
+  return data?.data?.ciphertext as string;
+}
+
 interface ChatState {
   rooms: ChatRoom[];
   activeRoomId: string | null;
@@ -33,6 +96,21 @@ const Communications: React.FC = () => {
 
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [encrypting, setEncrypting] = useState(false);
+  const [encryptError, setEncryptError] = useState<string | null>(null);
+
+  // Per-channel encryption: roomIds whose Vault transit key exists.
+  const [encryptedRooms, setEncryptedRooms] = useState<Set<string>>(new Set());
+  const [showVaultModal, setShowVaultModal] = useState(false);
+  const [vaultBusy, setVaultBusy] = useState(false);
+  const [vaultError, setVaultError] = useState<string | null>(null);
+  const [vaultForm, setVaultForm] = useState({
+    addr: VAULT_ADDR,
+    token: VAULT_TOKEN,
+    keyName: '',
+  });
+  // The channel the encryption modal is acting on (a room, or the AI officer).
+  const [vaultTarget, setVaultTarget] = useState<{ id: string; label: string } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewRoomDialog, setShowNewRoomDialog] = useState(false);
   const [newRoomName, setNewRoomName] = useState('');
@@ -216,6 +294,105 @@ const Communications: React.FC = () => {
     setIsTyping(false);
   };
 
+  // Encrypt the current input via Vault transit, then send it as a new,
+  // encrypted message (shows a green "Encrypted" badge).
+  const sendEncryptedMessage = async () => {
+    if (!messageInput.trim() || !chatState.activeRoomId || encrypting) return;
+    setEncrypting(true);
+    setEncryptError(null);
+    try {
+      // Use this channel's key if encryption is configured for it; otherwise
+      // fall back to the shared demo key.
+      const roomId = chatState.activeRoomId;
+      const keyName = encryptedRooms.has(roomId) ? channelKeyName(roomId) : DEFAULT_TRANSIT_KEY;
+      const ciphertext = await vaultEncrypt(messageInput.trim(), keyName);
+
+      const newMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        roomId: chatState.activeRoomId,
+        senderId: 'current-user',
+        senderCallsign: 'YOU',
+        content: ciphertext,
+        timestamp: new Date().toISOString(),
+        priority: 'normal',
+        classification: 'UNCLASSIFIED',
+        encrypted: true,
+        transitKey: keyName,
+      } as ChatMessage;
+
+      setChatState(prev => {
+        const newMessages = new Map(prev.messages);
+        const roomMessages = newMessages.get(chatState.activeRoomId!) || [];
+        newMessages.set(chatState.activeRoomId!, [...roomMessages, newMessage]);
+        return { ...prev, messages: newMessages };
+      });
+
+      // Send the ciphertext over the wire — never the plaintext.
+      wsService.sendChatMessage(chatState.activeRoomId, ciphertext, {
+        messageType: 'text',
+        priority: 'normal',
+        classification: 'UNCLASSIFIED',
+      });
+
+      setMessageInput('');
+      setIsTyping(false);
+    } catch (err) {
+      setEncryptError(err instanceof Error ? err.message : 'Encryption failed');
+    } finally {
+      setEncrypting(false);
+    }
+  };
+
+  // When the current target (active room, or the AI officer) changes, check
+  // Vault for its transit key so the indicator reflects the real state.
+  useEffect(() => {
+    const targetId = chatState.showAIChat ? AI_OFFICER_ID : chatState.activeRoomId;
+    if (!targetId) return;
+    let cancelled = false;
+    vaultKeyExists(VAULT_ADDR, VAULT_TOKEN, channelKeyName(targetId)).then(exists => {
+      if (cancelled) return;
+      setEncryptedRooms(prev => {
+        const next = new Set(prev);
+        if (exists) next.add(targetId); else next.delete(targetId);
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+  }, [chatState.activeRoomId, chatState.showAIChat]);
+
+  // Open the "Configure Vault Encryption" modal for the current target.
+  const openVaultModal = () => {
+    const targetId = chatState.showAIChat ? AI_OFFICER_ID : chatState.activeRoomId;
+    if (!targetId) return;
+    const label = chatState.showAIChat
+      ? 'AI Intel Officer'
+      : (chatState.rooms.find(r => r.id === targetId)?.name ?? targetId);
+    setVaultTarget({ id: targetId, label });
+    setVaultForm({ addr: VAULT_ADDR, token: VAULT_TOKEN, keyName: channelKeyName(targetId) });
+    setVaultError(null);
+    setShowVaultModal(true);
+  };
+
+  // Create the transit key in Vault, which "turns on" encryption for the target.
+  const enableChannelEncryption = async () => {
+    const targetId = vaultTarget?.id;
+    if (!targetId || vaultBusy) return;
+    setVaultBusy(true);
+    setVaultError(null);
+    try {
+      const exists = await vaultKeyExists(vaultForm.addr, vaultForm.token, vaultForm.keyName);
+      if (!exists) {
+        await vaultCreateKey(vaultForm.addr, vaultForm.token, vaultForm.keyName);
+      }
+      setEncryptedRooms(prev => new Set(prev).add(targetId));
+      setShowVaultModal(false);
+    } catch (err) {
+      setVaultError(err instanceof Error ? err.message : 'Failed to enable encryption');
+    } finally {
+      setVaultBusy(false);
+    }
+  };
+
   // Handle message input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessageInput(e.target.value);
@@ -281,6 +458,11 @@ const Communications: React.FC = () => {
   );
 
   const activeRoom = chatState.rooms.find(r => r.id === chatState.activeRoomId);
+  const isActiveEncrypted = chatState.activeRoomId ? encryptedRooms.has(chatState.activeRoomId) : false;
+  // Encryption "target" = the AI officer when its page is open, else the room.
+  const encryptionTargetId = chatState.showAIChat ? AI_OFFICER_ID : chatState.activeRoomId;
+  const encryptionTargetLabel = chatState.showAIChat ? 'AI Intel Officer' : (activeRoom?.name ?? '');
+  const isTargetEncrypted = encryptionTargetId ? encryptedRooms.has(encryptionTargetId) : false;
   const activeMessages = chatState.activeRoomId ? 
     chatState.messages.get(chatState.activeRoomId) || [] : [];
   const typingInActiveRoom = chatState.activeRoomId ?
@@ -384,31 +566,39 @@ const Communications: React.FC = () => {
               </div>
             </div>
 
-            {/* Encryption Status */}
+            {/* Encryption Status (active room, or the AI officer) */}
             <div className="sidebar-section encryption-section">
               <div className="encryption-status-card">
-                <div className={`encryption-indicator ${chatState.encryptionEnabled ? 'encrypted' : 'unencrypted'}`}>
+                <div className={`encryption-indicator ${isTargetEncrypted ? 'encrypted' : 'unencrypted'}`}>
                   <span className="encryption-icon">
-                    <Icon 
-                      name={chatState.encryptionEnabled ? 'lock' : 'unlock'} 
-                      size={20} 
-                      color={chatState.encryptionEnabled ? 'var(--color-success)' : 'var(--color-warning)'} 
+                    <Icon
+                      name={isTargetEncrypted ? 'lock' : 'unlock'}
+                      size={20}
+                      color={isTargetEncrypted ? 'var(--color-success)' : 'var(--color-warning)'}
                     />
                   </span>
                   <div className="encryption-info">
-                    <span className="encryption-label">Encryption</span>
+                    <span className="encryption-label">
+                      Encryption{encryptionTargetLabel ? ` — ${encryptionTargetLabel}` : ''}
+                    </span>
                     <span className="encryption-state">
-                      {chatState.encryptionEnabled ? 'Enabled' : 'Disabled'}
+                      {isTargetEncrypted ? 'Enabled' : 'Disabled'}
                     </span>
                   </div>
                 </div>
                 <div className="encryption-details">
-                  {chatState.encryptionEnabled ? (
+                  {isTargetEncrypted ? (
                     <span className="encryption-text">Messages are end-to-end encrypted via Vault Transit</span>
                   ) : (
                     <span className="encryption-text warning">Messages are not encrypted</span>
                   )}
                 </div>
+                {!isTargetEncrypted && encryptionTargetId && (
+                  <button className="encryption-configure-btn" onClick={openVaultModal}>
+                    <Icon name="lock" size={14} />
+                    Configure Encryption
+                  </button>
+                )}
               </div>
             </div>
           </>
@@ -435,18 +625,25 @@ const Communications: React.FC = () => {
                 <h2 className="channel-name">{activeRoom.name}</h2>
               </div>
               <div className="header-actions">
-                <div className={`encryption-badge ${chatState.encryptionEnabled ? 'encrypted' : 'unencrypted'}`}>
-                  <span className="lock-icon">
-                    <Icon 
-                      name={chatState.encryptionEnabled ? 'lock' : 'unlock'} 
-                      size={14} 
-                      color={chatState.encryptionEnabled ? 'var(--color-success)' : 'var(--color-warning)'} 
-                    />
-                  </span>
-                  <span className="encryption-text">
-                    {chatState.encryptionEnabled ? 'Encrypted' : 'Not Encrypted'}
-                  </span>
-                </div>
+                {isActiveEncrypted ? (
+                  <div className="encryption-badge encrypted" title={`Vault transit key: ${channelKeyName(activeRoom.id)}`}>
+                    <span className="lock-icon">
+                      <Icon name="lock" size={14} color="var(--color-success)" />
+                    </span>
+                    <span className="encryption-text">Encrypted</span>
+                  </div>
+                ) : (
+                  <button
+                    className="encryption-badge configure-encryption"
+                    onClick={openVaultModal}
+                    title="Configure Vault encryption for this channel"
+                  >
+                    <span className="lock-icon">
+                      <Icon name="unlock" size={14} color="var(--color-warning)" />
+                    </span>
+                    <span className="encryption-text">Configure Encryption</span>
+                  </button>
+                )}
                 <span className="member-count">
                   <span className="online-dot"></span>
                   {chatState.onlineUsers.size} Online
@@ -469,6 +666,15 @@ const Communications: React.FC = () => {
                     >
                       <div className="message-header">
                         <span className="sender">{message.senderCallsign}</span>
+                        {(message as ChatMessage & { encrypted?: boolean; transitKey?: string }).encrypted && (
+                          <span
+                            className="encrypted-badge"
+                            title={`Encrypted with Vault transit key "${(message as ChatMessage & { transitKey?: string }).transitKey || DEFAULT_TRANSIT_KEY}"`}
+                          >
+                            <Icon name="lock" size={11} />
+                            Encrypted
+                          </span>
+                        )}
                         <span className="time">
                           {new Date(message.timestamp).toLocaleTimeString([], { 
                             hour: '2-digit', 
@@ -476,7 +682,7 @@ const Communications: React.FC = () => {
                           })}
                         </span>
                       </div>
-                      <div className="message-body">
+                      <div className={`message-body${(message as ChatMessage & { encrypted?: boolean }).encrypted ? ' message-body-encrypted' : ''}`}>
                         {message.content}
                       </div>
                     </div>
@@ -513,7 +719,17 @@ const Communications: React.FC = () => {
                   className="message-input"
                   rows={1}
                 />
-                <button 
+                <button
+                  className="encrypt-btn"
+                  onClick={sendEncryptedMessage}
+                  disabled={!messageInput.trim() || encrypting}
+                  aria-label="Encrypt and send message"
+                  title={`Encrypt with Vault transit key "${isActiveEncrypted && activeRoom ? channelKeyName(activeRoom.id) : DEFAULT_TRANSIT_KEY}"`}
+                >
+                  <Icon name="lock" size={16} />
+                  <span>{encrypting ? 'Encrypting…' : 'Encrypt'}</span>
+                </button>
+                <button
                   className="send-btn"
                   onClick={sendMessage}
                   disabled={!messageInput.trim()}
@@ -525,6 +741,9 @@ const Communications: React.FC = () => {
                   </svg>
                 </button>
               </div>
+              {encryptError && (
+                <div className="encrypt-error" role="alert">{encryptError}</div>
+              )}
             </div>
           </>
         ) : (
@@ -533,6 +752,66 @@ const Communications: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Configure Vault Encryption Dialog */}
+      {showVaultModal && vaultTarget && (
+        <div className="modal-overlay" onClick={() => !vaultBusy && setShowVaultModal(false)}>
+          <div className="modal-dialog vault-encrypt-dialog" onClick={e => e.stopPropagation()}>
+            <h3>
+              <Icon name="lock" size={18} color="var(--color-accent)" />
+              Configure Encryption — {vaultTarget.label}
+            </h3>
+            <p className="vault-dialog-desc">
+              Creates a dedicated Vault transit key for this channel. Once the key
+              exists, the channel is marked <strong>Encrypted</strong>.
+            </p>
+
+            <div className="vault-field">
+              <label>Vault Address</label>
+              <input
+                type="text"
+                className="modal-input"
+                value={vaultForm.addr}
+                onChange={e => setVaultForm(f => ({ ...f, addr: e.target.value }))}
+              />
+            </div>
+            <div className="vault-field">
+              <label>Vault Token</label>
+              <input
+                type="password"
+                className="modal-input"
+                value={vaultForm.token}
+                onChange={e => setVaultForm(f => ({ ...f, token: e.target.value }))}
+              />
+            </div>
+            <div className="vault-field">
+              <label>Transit Key Name</label>
+              <input
+                type="text"
+                className="modal-input"
+                value={vaultForm.keyName}
+                onChange={e => setVaultForm(f => ({ ...f, keyName: e.target.value }))}
+              />
+              <p className="vault-field-help">This key is created in Vault's transit engine.</p>
+            </div>
+
+            {vaultError && <div className="vault-dialog-error" role="alert">{vaultError}</div>}
+
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={() => setShowVaultModal(false)} disabled={vaultBusy}>
+                Cancel
+              </button>
+              <button
+                className="btn-create"
+                onClick={enableChannelEncryption}
+                disabled={vaultBusy || !vaultForm.addr.trim() || !vaultForm.token.trim() || !vaultForm.keyName.trim()}
+              >
+                {vaultBusy ? 'Enabling…' : 'Enable Encryption'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Room Dialog */}
       {showNewRoomDialog && (

@@ -550,3 +550,310 @@
     gap: 8px;
   }
 }
+
+/* ==========================================================================
+   Integration config modal (Vault / Anthropic) — redesign
+   Scoped under .integrations-fullpage so other pages' forms are untouched.
+   The modal form classes (.config-section/.form-group/.form-input/…) were
+   previously unstyled, so labels and inputs collapsed together.
+   ========================================================================== */
+
+/* Overlay: full-screen dim + centered modal */
+.integrations-fullpage .modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Content: fixed-width column that scrolls internally */
+.integrations-fullpage .modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  max-height: 88vh;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Header */
+.integrations-fullpage .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+.integrations-fullpage .modal-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #e8edf2);
+}
+.integrations-fullpage .modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.integrations-fullpage .modal-icon svg { width: 34px; height: 34px; display: block; }
+.integrations-fullpage .modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-muted, #9aa4b2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.integrations-fullpage .modal-close:hover {
+  color: var(--color-text-primary, #fff);
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+/* Body: scroll region */
+.integrations-fullpage .modal-body {
+  padding: 8px 24px 20px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+/* Sections */
+.integrations-fullpage .config-section { padding: 16px 0; }
+.integrations-fullpage .config-section + .config-section {
+  border-top: 1px solid var(--color-divider, rgba(255, 255, 255, 0.06));
+}
+.integrations-fullpage .config-section h3 {
+  margin: 0 0 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-accent, var(--color-accent, #00d4aa));
+}
+
+/* Form groups */
+.integrations-fullpage .form-group { margin-bottom: 16px; }
+.integrations-fullpage .form-group:last-child { margin-bottom: 0; }
+.integrations-fullpage .form-group > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #c2c9d2);
+}
+
+/* Inputs & selects */
+.integrations-fullpage .form-input,
+.integrations-fullpage .form-select,
+.integrations-fullpage .sub-config input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary, #e8edf2);
+  background: var(--color-bg-secondary, rgba(0, 0, 0, 0.25));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.integrations-fullpage .form-input::placeholder { color: var(--color-text-muted, #6b7280); }
+.integrations-fullpage .form-input:focus,
+.integrations-fullpage .form-select:focus,
+.integrations-fullpage .sub-config input:focus {
+  border-color: var(--color-accent, #00d4aa);
+  box-shadow: 0 0 0 3px var(--color-accent-dim, rgba(0, 212, 170, 0.18));
+}
+.integrations-fullpage .form-select { cursor: pointer; }
+
+/* Helper text */
+.integrations-fullpage .form-help,
+.integrations-fullpage .form-help-sub {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text-muted, #8b95a3);
+}
+
+/* Checkbox feature toggles */
+.integrations-fullpage .feature-toggle {
+  padding: 14px;
+  background: var(--color-surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+}
+.integrations-fullpage .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #e8edf2);
+  cursor: pointer;
+}
+.integrations-fullpage .checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent, #00d4aa);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Indented sub-config block revealed by a toggle */
+.integrations-fullpage .sub-config {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 2px solid var(--color-accent, #00d4aa);
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 0 8px 8px 0;
+}
+.integrations-fullpage .sub-config > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary, #c2c9d2);
+}
+
+/* OIDC grouped config */
+.integrations-fullpage .oidc-config {
+  margin-top: 12px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.06));
+  border-radius: 10px;
+}
+
+/* Inline status pill (encryption etc.) */
+.integrations-fullpage .encryption-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--color-success, #22c55e);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+.integrations-fullpage .encryption-status.warning {
+  color: var(--color-warning, #f59e0b);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+.integrations-fullpage .lock-icon { font-size: 0.85rem; }
+
+/* Callout note */
+.integrations-fullpage .integration-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary, #c2c9d2);
+  background: var(--color-accent-dim, rgba(0, 212, 170, 0.08));
+  border: 1px solid var(--color-border-accent, rgba(0, 212, 170, 0.25));
+  border-radius: 8px;
+}
+.integrations-fullpage .integration-note strong { color: var(--color-text-primary, #fff); }
+
+/* Test-connection row */
+.integrations-fullpage .config-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider, rgba(255, 255, 255, 0.06));
+}
+.integrations-fullpage .config-status { margin-left: auto; }
+.integrations-fullpage .status-connected {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-success, #22c55e);
+}
+
+/* Footer */
+.integrations-fullpage .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+
+/* Buttons */
+.integrations-fullpage .btn-test,
+.integrations-fullpage .btn-cancel,
+.integrations-fullpage .btn-save {
+  padding: 9px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+.integrations-fullpage .btn-test {
+  color: var(--color-text-primary, #e8edf2);
+  background: var(--color-surface, rgba(255, 255, 255, 0.05));
+  border-color: var(--color-border, rgba(255, 255, 255, 0.14));
+}
+.integrations-fullpage .btn-test:hover { background: var(--color-surface-hover, rgba(255, 255, 255, 0.1)); }
+.integrations-fullpage .btn-cancel {
+  color: var(--color-text-secondary, #c2c9d2);
+  background: transparent;
+  border-color: var(--color-border, rgba(255, 255, 255, 0.14));
+}
+.integrations-fullpage .btn-cancel:hover { background: var(--color-surface-hover, rgba(255, 255, 255, 0.06)); }
+.integrations-fullpage .btn-save {
+  color: var(--color-text-inverse, #04221b);
+  background: var(--color-accent, #00d4aa);
+  border-color: var(--color-accent, #00d4aa);
+}
+.integrations-fullpage .btn-save:hover { background: var(--color-accent-hover, #00bfa0); }
+
+/* Small screens */
+@media (max-width: 640px) {
+  .integrations-fullpage .modal-overlay { padding: 12px; }
+  .integrations-fullpage .modal-content { max-height: 92vh; }
+  .integrations-fullpage .modal-header,
+  .integrations-fullpage .modal-body,
+  .integrations-fullpage .modal-footer { padding-left: 16px; padding-right: 16px; }
+}
+
+/* Anthropic key — Vault storage confirmation (success state) */
+.integrations-fullpage .security-notice.success {
+  color: var(--color-success, #22c55e);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.integrations-fullpage .security-notice.success span { color: var(--color-success, #22c55e); }

@@ -15,6 +15,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<'standard' | 'vault'>('standard');
   const [vaultConfig, setVaultConfig] = useState<any>(null);
+  const [consented, setConsented] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -29,6 +30,13 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Require acknowledgment of the consent banner before authenticating.
+    if (!consented) {
+      setError('You must read and consent to the conditions before signing in.');
+      return;
+    }
+
     setIsLoading(true);
 
     // Validate input
@@ -170,6 +178,39 @@ const Login: React.FC = () => {
           </div>
 
           <form className="login-form" onSubmit={handleSubmit}>
+            {/* Notice and Consent (DoW / USG warning banner) */}
+            <div className="login-disclosure" role="region" aria-label="Notice and Consent">
+              <div className="login-disclosure-title">
+                <Icon name="alert-triangle" size={15} />
+                <span>U.S. GOVERNMENT (DoW) INFORMATION SYSTEM — NOTICE AND CONSENT</span>
+              </div>
+              <div className="login-disclosure-body">
+                <p>
+                  You are accessing a U.S. Government (DoW) Information System. This information
+                  system is provided for U.S. Government-authorized use only.
+                </p>
+                <p>
+                  Unauthorized or improper use of this system may result in disciplinary action, as
+                  well as civil and criminal penalties.
+                </p>
+                <p>By using this information system, you understand and consent to the following:</p>
+                <ul>
+                  <li>You have no reasonable expectation of privacy regarding any communications or data transiting or stored on this information system.</li>
+                  <li>At any time, and for any lawful government purpose, the government may monitor, intercept, search, and seize any communication or data transiting or stored on this information system.</li>
+                  <li>Any communications or data transiting or stored on this information system may be disclosed or used for any lawful government purpose.</li>
+                </ul>
+              </div>
+            </div>
+            <label className="consent-check">
+              <input
+                type="checkbox"
+                checked={consented}
+                onChange={(e) => { setConsented(e.target.checked); if (error) setError(''); }}
+                disabled={isLoading}
+              />
+              <span>I have read and consent to the conditions above.</span>
+            </label>
+
             {/* Login Method Selector - Only show if Vault is configured */}
             {vaultConfig && (
               <div className="login-method-selector">
@@ -265,7 +306,7 @@ const Login: React.FC = () => {
               </a>
             </div>
 
-            <button type="submit" className="login-button" disabled={isLoading}>
+            <button type="submit" className="login-button" disabled={isLoading || !consented}>
               {isLoading ? (
                 <>
                   <span className="spinner"></span>
