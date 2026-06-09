@@ -21,8 +21,10 @@ GoTAK is a compatible TAK server implementation that provides situational awaren
 - **Security First**: TLS encryption, client certificate authentication, and automated security scanning
 - **Structured Logging**: Comprehensive logging with zerolog for production monitoring
 - **Database Integration**: PostgreSQL support with embedded migrations
+- **HashiCorp Stack Deployment**: Run on Nomad with Consul service mesh (Connect) and Vault-backed secrets
+- **Vault Secrets Encryption**: Comms messages encrypted via Vault's transit engine
 - **CI/CD Pipeline**: Automated testing, security scanning, and Docker image building
-- **Developer Experience**: Hot reload, pre-commit hooks, and integration testing
+- **Developer Experience**: Hot reload, pre-commit hooks, integration testing, and a one-command local HashiStack
 - **Cross-platform**: Runs on Linux, macOS, and Windows
 - **Docker Support**: Multi-stage optimized builds for production deployment
 - **Federation Support**: Connect multiple TAK servers (coming soon)
@@ -83,8 +85,14 @@ gotak/
 ├── deployments/            # Deployment configurations
 │   ├── docker/             # Docker configurations
 │   └── k8s/                # Kubernetes manifests
+├── hashistack/             # Local single-node Consul + Vault + Nomad dev runtime
+├── nomad/                  # Nomad job specs (standalone + Consul Connect)
+│   └── deployments/
+│       ├── standalone/     # Self-contained jobs (no service mesh)
+│       └── consul/         # Consul Connect (service mesh) jobs + API gateway
+├── migrations/             # Embedded SQL migrations
 ├── docs/                   # Documentation
-├── web/                    # Web interface (planned)
+├── web/                    # React tactical web interface
 ├── test/                   # Test files
 └── scripts/                # Build and utility scripts
 ```
@@ -233,6 +241,32 @@ make build-all
 make certs
 ```
 
+### HashiStack Commands
+
+Spin up a local single-node Consul + Vault + Nomad runtime and deploy GoTAK to it:
+
+```bash
+# Install (via brew if needed) and start Consul, Vault, and Nomad in dev mode
+make hashi-up
+
+# Show health of the local HashiStack
+make hashi-status
+
+# Tail Consul/Vault/Nomad logs
+make hashi-logs
+
+# Deploy the GoTAK standalone stack to the local Nomad
+make nomad-deploy
+
+# Stop the GoTAK Nomad job
+make nomad-stop
+
+# Stop everything and clean ephemeral data
+make hashi-down
+```
+
+See [hashistack/README.md](hashistack/README.md) for endpoints, tokens, and CLI environment variables.
+
 ### Adding Features
 
 1. **CoT Message Types**: Extend `pkg/cot/cot.go` with new message types
@@ -284,6 +318,47 @@ Kubernetes manifests are available in `deployments/k8s/`:
 
 ```bash
 kubectl apply -f deployments/k8s/
+```
+
+### HashiCorp Nomad Deployment
+
+GoTAK ships Nomad job specs for deploying the full stack (server, PostgreSQL,
+Redis) on a HashiCorp scheduler. Two flavors are provided under `nomad/deployments/`:
+
+- **`standalone/`** — self-contained jobs that bind directly to host ports, ideal
+  for a single-node Nomad or local development.
+- **`consul/`** — jobs wired into the **Consul Connect** service mesh, with an API
+  gateway for ingress and mutual-TLS between services.
+
+To try it locally, bring up the bundled single-node HashiStack and deploy:
+
+```bash
+make hashi-up        # start Consul, Vault, and Nomad (dev mode)
+make nomad-deploy    # render + submit the GoTAK standalone job to local Nomad
+make hashi-status    # check health
+```
+
+The local Nomad UI is at `http://127.0.0.1:4646`, Consul at
+`http://127.0.0.1:8500`, and Vault at `http://127.0.0.1:8200`. See
+[hashistack/README.md](hashistack/README.md) for full details.
+
+### Secrets with Vault
+
+GoTAK uses Vault's **transit** secrets engine to encrypt communications messages.
+For the local stack, configure the transit key (re-run after any dev-Vault
+restart, since dev mode is in-memory):
+
+```bash
+./hashistack/vault-setup.sh
+```
+
+### Secure Access with Boundary (optional)
+
+For brokered access to the infrastructure endpoints (Consul, Nomad, Vault) via
+HashiCorp Boundary, a demo setup script is provided:
+
+```bash
+./hashistack/boundary-setup.sh
 ```
 
 ### Systemd Service
@@ -399,13 +474,15 @@ logging:
 
 ## Roadmap
 
-- [ ] Web administration interface
-- [ ] Database persistence layer
+- [x] Web administration interface (React tactical UI)
+- [x] Database persistence layer (PostgreSQL + embedded migrations)
+- [x] User authentication and authorization
+- [x] Nomad deployment with Consul Connect service mesh
+- [x] Vault-backed secrets and transit encryption
 - [ ] Federation with other TAK servers
 - [ ] Plugin system for custom message types
 - [ ] REST API for external integrations
 - [ ] Metrics and monitoring endpoints
-- [ ] User authentication and authorization
 - [ ] Message filtering and routing rules
 
 ## License
