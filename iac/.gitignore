@@ -1,0 +1,15 @@
+# Terraform local state / scratch (TFC owns real state)
+.terraform/
+.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+# Keep provider lock files (.terraform.lock.hcl) committed for reproducibility.
+# Local var files that may hold secrets:
+*.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
