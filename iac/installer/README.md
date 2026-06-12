@@ -14,7 +14,7 @@ Why a node instead of a laptop install:
 
 ## Terraform Cloud setup (one-time)
 
-1. **Create the workspace** in org `org-LoxuyV1DiwAxdXPf`, **goTak** project:
+1. **Create the workspace** in org `osage`, **goTak** project:
    - Version control workflow → repo `osage-io/gotak`
    - **Working Directory:** `iac/installer` · Branch: `main`
 2. The **goTak project Variable Set** (AWS keys) already applies.
