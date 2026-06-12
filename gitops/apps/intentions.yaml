@@ -12,7 +12,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/osage-io/gotak.git
-    targetRevision: openshift-platform-vault-consul
+    targetRevision: main
     path: openshift/platform
     directory:
       include: consul-intentions.yaml

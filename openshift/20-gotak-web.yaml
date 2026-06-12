@@ -53,8 +53,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: gotak-web
-          image: gotak-web:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/osage-io/gotak-web:latest
+          imagePullPolicy: Always
           # NOTE: OpenShift restricted SCC runs as non-root, so the web image's
           # nginx must listen on 8080 (not 80). Adjust the web Dockerfile/nginx.conf
           # if it still binds :80. See README.
