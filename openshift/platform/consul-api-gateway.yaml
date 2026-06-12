@@ -1,0 +1,104 @@
+---
+# Consul API Gateway — the single north-south entry point in front of gotak.
+#
+# External client (browser) -> OpenShift edge Route -> this gateway (HTTP listener)
+#   -> mTLS mesh -> gotak-web / gotak-server.
+#
+# Because the gateway is a mesh member, the hop into the backends is mTLS and
+# governed by intentions (gateway -> web, gateway -> server). That lets gotak-web
+# and gotak-server drop their per-service Routes and inbound-port exclusions and
+# become fully mesh-enforced — the gateway is now the only way in.
+#
+# Path routing (single hostname):
+#   /api  -> gotak-server:8080   (SPA calls ${apiUrl}/api/v1/...)
+#   /ws   -> gotak-server:8087   (WebSocket / TAK stream)
+#   /     -> gotak-web:8080      (the SPA itself)
+
+# ClusterIP service for the gateway — we front it with an OpenShift Route rather
+# than provisioning an AWS LoadBalancer on the single node.
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: GatewayClassConfig
+metadata:
+  name: gotak-gateway-config
+spec:
+  serviceType: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: GatewayClass
+metadata:
+  name: gotak-consul
+spec:
+  controllerName: consul.hashicorp.com/gateway-controller
+  parametersRef:
+    group: consul.hashicorp.com
+    kind: GatewayClassConfig
+    name: gotak-gateway-config
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: gotak-gateway
+  namespace: gotak
+spec:
+  gatewayClassName: gotak-consul
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 8080
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: gotak-routes
+  namespace: gotak
+spec:
+  parentRefs:
+    - name: gotak-gateway
+  rules:
+    # API -> gotak-server (the SPA hits /api/v1/... under this prefix)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: gotak-server
+          port: 8080
+    # WebSocket / TAK stream -> gotak-server
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ws
+      backendRefs:
+        - name: gotak-server
+          port: 8087
+    # Everything else -> the web UI
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: gotak-web
+          port: 8080
+---
+# North-south edge: TLS terminated at the OpenShift router, forwarded to the
+# gateway's HTTP listener. From the gateway inward it's mTLS mesh.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: gotak-gateway
+  namespace: gotak
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: api-gateway
+spec:
+  to:
+    kind: Service
+    name: gotak-gateway
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

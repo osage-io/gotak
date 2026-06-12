@@ -57,11 +57,10 @@ spec:
         app.kubernetes.io/name: gotak
         app.kubernetes.io/component: server
       annotations:
-        # Join the Consul service mesh. Route edge (browser hits the API + WS
-        # Routes directly), so exclude those inbound ports from the proxy.
-        # Outbound to postgres stays meshed and is governed by an intention.
+        # Fully in the mesh — north-south enters via the Consul API Gateway, so
+        # no Route and no inbound exclusions. Reachable only via gateway ->
+        # gotak-server; outbound to postgres is governed by an intention.
         consul.hashicorp.com/connect-inject: "true"
-        consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "8080,8087"
     spec:
       securityContext:
         runAsNonRoot: true

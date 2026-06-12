@@ -96,6 +96,13 @@ oc wait --for=condition=Established crd/serviceintentions.consul.hashicorp.com -
 oc apply -f "$DIR/consul-intentions.yaml" || \
   echo "   (intentions will apply once the ServiceIntentions CRD is ready — re-run: oc apply -f consul-intentions.yaml)"
 
+# API Gateway — the north-south front door for gotak. HTTPRoutes resolve once the
+# app's Services exist (deploy.sh), so applying before the app is fine.
+echo ">> Applying Consul API Gateway (north-south ingress for gotak)"
+oc wait --for=condition=Established crd/gateways.gateway.networking.k8s.io --timeout=120s 2>/dev/null || true
+oc apply -f "$DIR/consul-api-gateway.yaml" || \
+  echo "   (Gateway API CRDs not ready yet — re-run: oc apply -f consul-api-gateway.yaml)"
+
 echo ""
 echo ">> Platform up. Endpoints:"
 oc -n "$NS" get route 2>/dev/null | awk 'NR==1 || /vault|consul/'

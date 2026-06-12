@@ -22,19 +22,28 @@ oc adm policy add-scc-to-user anyuid -z gotak-postgres -n "$PROJECT" || \
 echo ">> Applying manifests"
 oc apply -f "$DIR/10-gotak-server.yaml"
 oc apply -f "$DIR/20-gotak-web.yaml"
-oc apply -f "$DIR/30-routes.yaml"
+# Ingress is the Consul API Gateway (openshift/platform/consul-api-gateway.yaml),
+# applied by install-platform.sh. 30-routes.yaml is documentation only now.
 
-# If the HashiStack platform is installed, point the web UI's Vault address at
-# the live `vault` Route so the browser talks to in-cluster Vault out of the box.
+# Point the web UI's runtime config at the live in-cluster endpoints:
+#  - Vault  -> the `vault` Route (browser calls Vault directly for transit/PKI/KV)
+#  - API/WS -> the `gotak-gateway` Route (single hostname, path-routed)
+patch_web() { oc patch configmap gotak-web-config -n "$PROJECT" --type merge -p "$1"; }
+
 VAULT_HOST="$(oc get route vault -n "$PROJECT" -o jsonpath='{.spec.host}' 2>/dev/null || true)"
-if [ -n "$VAULT_HOST" ]; then
-  echo ">> Wiring web Vault address -> https://$VAULT_HOST"
-  oc patch configmap gotak-web-config -n "$PROJECT" --type merge \
-    -p "{\"data\":{\"VAULT_ADDR\":\"https://$VAULT_HOST\"}}"
-  oc rollout restart deploy/gotak-web -n "$PROJECT" >/dev/null 2>&1 || true
+[ -n "$VAULT_HOST" ] && { echo ">> web Vault address -> https://$VAULT_HOST"; \
+  patch_web "{\"data\":{\"VAULT_ADDR\":\"https://$VAULT_HOST\"}}"; } || \
+  echo ">> (no vault Route yet — Vault address left as configured default)"
+
+GW_HOST="$(oc get route gotak-gateway -n "$PROJECT" -o jsonpath='{.spec.host}' 2>/dev/null || true)"
+if [ -n "$GW_HOST" ]; then
+  echo ">> web API/WS endpoints -> https://$GW_HOST (via API Gateway)"
+  # apiClient appends /api/v1 to apiUrl; websocket uses wsUrl verbatim.
+  patch_web "{\"data\":{\"GOTAK_API_URL\":\"https://$GW_HOST\",\"GOTAK_WS_URL\":\"wss://$GW_HOST/ws\"}}"
 else
-  echo ">> (no vault Route yet — web Vault address left as configured default)"
+  echo ">> (no gotak-gateway Route yet — run install-platform.sh first for ingress)"
 fi
+oc rollout restart deploy/gotak-web -n "$PROJECT" >/dev/null 2>&1 || true
 
 echo ">> Waiting for rollouts"
 oc rollout status deploy/postgres --timeout=120s || true

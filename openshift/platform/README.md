@@ -73,7 +73,8 @@ nothing talks to anything without an explicit allow:
 | Source | Destination | Why |
 |--------|-------------|-----|
 | `*` | `*` | **deny** (catch-all) |
-| `gotak-web` | `gotak-server` | UI/API calls that stay in-cluster |
+| `gotak-gateway` | `gotak-web` | gateway serves the SPA |
+| `gotak-gateway` | `gotak-server` | gateway routes `/api` + `/ws` |
 | `gotak-server` | `postgres` | the DB hop — fully mesh-enforced |
 
 `gotak-server → postgres` is the clean showcase: postgres has no Route, so all its
@@ -86,12 +87,24 @@ oc apply -f consul-intentions.yaml          # default-deny + allows
 oc delete serviceintentions postgres -n gotak   # server -> postgres now blocked
 ```
 
-**North-south caveat:** `gotak-web` and `gotak-server` are also reached from the
-browser through OpenShift Routes. The OpenShift router isn't a mesh member, so
-those pods exclude their Route-facing inbound ports from the proxy
-(`transparent-proxy-exclude-inbound-ports` annotation) — meaning north-south
-ingress bypasses mesh enforcement. To bring north-south fully into the mesh, front
-it with a **Consul API Gateway** instead of Routes.
+### North-south: Consul API Gateway
+
+All ingress goes through a **Consul API Gateway**
+([`consul-api-gateway.yaml`](consul-api-gateway.yaml)) — the single front door to
+gotak. One external hostname, path-routed, then mTLS into the mesh:
+
+```
+browser ─▶ OpenShift edge Route ─▶ gotak-gateway (HTTP listener)
+                                      │  mTLS + intentions
+                                      ├─ /api ─▶ gotak-server:8080
+                                      ├─ /ws  ─▶ gotak-server:8087
+                                      └─ /    ─▶ gotak-web:8080
+```
+
+Because the gateway is itself a mesh member, `gotak-web` and `gotak-server` keep
+**no Routes of their own and no inbound exclusions** — they're reachable only via
+`gateway → web` / `gateway → server` intentions, fully mesh-enforced. `deploy.sh`
+points the web UI's `GOTAK_API_URL`/`GOTAK_WS_URL` at the gateway Route host.
 
 ## ⚠️ KMS auto-unseal and rotating creds
 
