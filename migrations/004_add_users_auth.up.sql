@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
     last_login TIMESTAMP WITH TIME ZONE
 );
 
+-- 001_initial_schema also creates users (with is_active instead of active, no
+-- callsign/last_login). When that shape already exists, the CREATE TABLE above
+-- no-ops — reconcile the columns this migration depends on.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS callsign VARCHAR(50);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP WITH TIME ZONE;
+
 -- Sessions table for active sessions
 CREATE TABLE IF NOT EXISTS sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
