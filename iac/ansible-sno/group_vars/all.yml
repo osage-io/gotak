@@ -1,0 +1,42 @@
+---
+# Cluster identity (must line up with the gotak-network workspace).
+cluster_name: gotak
+base_domain: daniel-fedick.aws.sbx.hashicorpdemo.com
+aws_region: us-east-2
+
+# From the gotak-network workspace outputs.
+vpc_machine_cidr: 10.0.0.0/16
+subnet_ids:
+  - subnet-0efb0edad2efdcf01 # public  us-east-2a
+  - subnet-0508096cce8d1914c # private us-east-2a
+availability_zone: us-east-2a
+
+# Single node: arm64 Graviton, 8 vCPU / 32 GiB.
+sno_instance_type: m6g.2xlarge
+sno_root_volume_gb: 200
+
+# OpenShift release (aarch64 payload to match the arm64 node).
+ocp_version: "4.22.0"
+ocp_mirror: "https://mirror.openshift.com/pub/openshift-v4/aarch64/clients/ocp/{{ ocp_version }}"
+
+# Local (control machine) files — never committed.
+pull_secret_file: "{{ playbook_dir }}/../sno/pull-secret.json"
+ssh_pub_key_file: "~/.ssh/dfed01.pub"
+
+# Where everything lives on the installer node.
+install_root: /home/ec2-user/sno
+install_dir: "{{ install_root }}/cluster"
+
+# Where cluster auth is fetched back to on the control machine (gitignored).
+local_auth_dir: "{{ playbook_dir }}/../sno/cluster-auth"
+
+# The 6 operator credential secrets for CCO Manual mode (from the release's
+# CredentialsRequests). Stamped with the node's instance-profile creds and
+# refreshed by cron post-install.
+operator_secrets:
+  - { namespace: openshift-machine-api, name: aws-cloud-credentials }
+  - { namespace: openshift-cloud-credential-operator, name: cloud-credential-operator-iam-ro-creds }
+  - { namespace: openshift-image-registry, name: installer-cloud-credentials }
+  - { namespace: openshift-ingress-operator, name: cloud-credentials }
+  - { namespace: openshift-cloud-network-config-controller, name: cloud-credentials }
+  - { namespace: openshift-cluster-csi-drivers, name: ebs-cloud-credentials }

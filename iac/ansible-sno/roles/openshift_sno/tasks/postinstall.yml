@@ -1,0 +1,41 @@
+---
+- name: Cron - refresh in-cluster AWS credential secrets every 30 min
+  ansible.builtin.cron:
+    name: refresh-cluster-creds
+    minute: "*/30"
+    job: "/usr/local/bin/refresh-cluster-creds >> {{ install_root }}/refresh-creds.log 2>&1"
+
+- name: Run one credential refresh now
+  ansible.builtin.command: /usr/local/bin/refresh-cluster-creds
+  register: refresh_now
+  changed_when: true
+  failed_when: false
+
+- name: Fetch kubeconfig back to the control machine
+  ansible.builtin.fetch:
+    src: "{{ install_dir }}/auth/kubeconfig"
+    dest: "{{ local_auth_dir }}/kubeconfig"
+    flat: true
+
+- name: Fetch kubeadmin password
+  ansible.builtin.fetch:
+    src: "{{ install_dir }}/auth/kubeadmin-password"
+    dest: "{{ local_auth_dir }}/kubeadmin-password"
+    flat: true
+
+- name: Read cluster status
+  ansible.builtin.shell:
+    cmd: >-
+      KUBECONFIG={{ install_dir }}/auth/kubeconfig /usr/local/bin/oc get clusterversion
+      && KUBECONFIG={{ install_dir }}/auth/kubeconfig /usr/local/bin/oc get nodes
+  register: cluster_status
+  changed_when: false
+  failed_when: false
+
+- name: Cluster summary
+  ansible.builtin.debug:
+    msg:
+      - "Console: https://console-openshift-console.apps.{{ cluster_name }}.{{ base_domain }}"
+      - "API:     https://api.{{ cluster_name }}.{{ base_domain }}:6443"
+      - "kubeadmin password + kubeconfig fetched to {{ local_auth_dir }}/"
+      - "{{ cluster_status.stdout_lines | default([]) }}"

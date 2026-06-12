@@ -1,0 +1,10 @@
+---
+# Drive the single-node OpenShift (SNO) install from the gotak-installer node.
+#   ansible-playbook site.yml                  # full: tools -> config -> install -> post
+#   ansible-playbook site.yml -t tools         # just the tooling
+#   ansible-playbook site.yml -t postinstall   # re-fetch auth / re-install cron
+- name: Install single-node OpenShift from the installer node
+  hosts: installer
+  gather_facts: true
+  roles:
+    - openshift_sno

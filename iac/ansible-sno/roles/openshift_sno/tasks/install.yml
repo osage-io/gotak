@@ -1,0 +1,54 @@
+---
+- name: Create cluster dir and place install-config
+  ansible.builtin.file:
+    path: "{{ install_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy install-config into the cluster dir (installer consumes it)
+  ansible.builtin.copy:
+    src: "{{ install_root }}/install-config.yaml"
+    dest: "{{ install_dir }}/install-config.yaml"
+    remote_src: true
+    mode: "0600"
+
+- name: openshift-install create manifests
+  ansible.builtin.command:
+    cmd: /usr/local/bin/openshift-install create manifests --dir {{ install_dir }}
+  register: manifests_out
+  changed_when: true
+
+- name: Generate the 6 operator credential secrets from instance-profile creds
+  ansible.builtin.command:
+    cmd: /usr/local/bin/generate-operator-secrets {{ install_dir }}/openshift
+  changed_when: true
+
+- name: Launch openshift-install create cluster (~45 min, async)
+  ansible.builtin.shell:
+    cmd: >-
+      nohup /usr/local/bin/openshift-install create cluster
+      --dir {{ install_dir }} --log-level=info
+      >> {{ install_root }}/create-cluster.log 2>&1
+  async: 5400
+  poll: 0
+  register: install_job
+
+- name: Wait for install completion (polls the async job every 60s)
+  ansible.builtin.async_status:
+    jid: "{{ install_job.ansible_job_id }}"
+  register: install_result
+  until: install_result.finished
+  retries: 90
+  delay: 60
+
+- name: Tail the install log on failure
+  ansible.builtin.command:
+    cmd: tail -40 {{ install_root }}/create-cluster.log
+  register: fail_log
+  when: install_result.rc is defined and install_result.rc != 0
+  changed_when: false
+
+- name: Fail with the installer's last words
+  ansible.builtin.fail:
+    msg: "{{ fail_log.stdout_lines | default(['install failed — see create-cluster.log on the node']) }}"
+  when: install_result.rc is defined and install_result.rc != 0

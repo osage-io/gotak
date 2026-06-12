@@ -1,0 +1,46 @@
+---
+- name: Read pull secret from the control machine
+  ansible.builtin.set_fact:
+    pull_secret: "{{ lookup('file', pull_secret_file) | trim }}"
+    ssh_public_key: "{{ lookup('file', ssh_pub_key_file) | trim }}"
+  no_log: true
+
+- name: Create install root
+  ansible.builtin.file:
+    path: "{{ install_root }}"
+    state: directory
+    mode: "0755"
+
+- name: Fail if a previous install state exists (protect a running cluster)
+  ansible.builtin.stat:
+    path: "{{ install_dir }}/terraform.platform.auto.tfvars.json"
+  register: prior_state
+
+- name: Abort rather than clobber an existing cluster dir
+  ansible.builtin.fail:
+    msg: >-
+      {{ install_dir }} already contains installer state. Destroy the cluster
+      first (openshift-install destroy cluster --dir {{ install_dir }}) or
+      remove the directory deliberately, then re-run.
+  when: prior_state.stat.exists
+
+- name: Render install-config.yaml (kept copy)
+  ansible.builtin.template:
+    src: install-config.yaml.j2
+    dest: "{{ install_root }}/install-config.yaml"
+    mode: "0600"
+  no_log: true
+
+- name: Install the secret-generation script (IMDS -> operator secrets)
+  become: true
+  ansible.builtin.template:
+    src: generate-secrets.sh.j2
+    dest: /usr/local/bin/generate-operator-secrets
+    mode: "0755"
+
+- name: Install the cred-refresh script (cron target)
+  become: true
+  ansible.builtin.template:
+    src: refresh-creds.sh.j2
+    dest: /usr/local/bin/refresh-cluster-creds
+    mode: "0755"
