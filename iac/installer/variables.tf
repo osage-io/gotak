@@ -31,7 +31,7 @@ variable "ssh_ingress_cidr" {
 variable "ssh_public_key" {
   description = "SSH public key installed on the node (default: dfed01)."
   type        = string
-  default     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCi6HlM9Sj68uK5fiHFwepIq6uZL2xE/TFdtik4xm9Nmm4cviXSdnxaivGMKEPEZl0okZk69CPa9rTktY28OAq5+L1NHRm/dHbITJxFKLevDIYjVQc1zjvCnkqI23T31LO20ZQClvz86xRu8t12RPiu1Q9TDjxNwa9aIQjQesGuxXrZkrBjxJSyvBSpEUiTAYcaR04C7cAlEK+SitXmHbZyTLOAtCnv0DRrJh4bpsBcGGgKKnHfybLBPhKZCLLPaC2vSphlGLYHMdRtAvolijZUbXIqIknLcSKgvtPLyzL+0XCixZAlBPMfmgVH/F1OWspeR/sxwm5Cw0EsuTo8onPjL dfed01"
+  default     = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCi6HlM9Sj68uK5fiHFwepIq6uZL2xE/TFdtik4xm9Nmm4cviXSdnxaivGMKEPEt0IvqPVNk1vJg8Wb8UpCXMDd9N+mcs5wpll7JwOObp7BW2/ib2keOqUueDn4v95ueJTPUYGTvbpPOb6q2/6k/vZiYobFlWhA0pL7f40Q22zxpRi3Ml/P+SWc9AXIWj2mNOzxireM5oEu07funNZmUx9hh5Q8EoMFl+w7dMIhMLKuSONKMmCS52JfASGAZHjK1OBG39/q251l1bNpcYv6NGH9KQHnJCTKg8vuyht/3IkGoOIHATJVvKX9hTxxn1/hcLs3TKEiCM9Pf+RdqifGQSUB dfedick@Dans-MacBook-Pro.local"
 }
 
 # Cross-workspace state wiring.
