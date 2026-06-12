@@ -10,6 +10,10 @@ global:
   image: docker.io/hashicorp/consul:2.0.0
   imageK8S: docker.io/hashicorp/consul-k8s-control-plane:2.0.0
   imageConsulDataplane: docker.io/hashicorp/consul-dataplane:2.0.0
+  # OpenShift's ingress-operator already owns the Gateway API CRDs, so don't let
+  # the chart install them (the ownership conflict fails the whole Argo sync).
+  # Consul's API Gateway controller uses the cluster's existing CRDs.
+  installK8sNetworkingCRDs: false
 
 server:
   replicas: 1
