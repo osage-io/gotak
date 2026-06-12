@@ -61,3 +61,25 @@ spec:
   sources:
     - name: gotak-server
       action: allow
+---
+# Service protocols. Mesh services default to "tcp", and an HTTPRoute can only
+# bind to http services — without these the route fails Accepted with
+# "InvalidDiscoveryChain: route protocol does not match targeted service
+# protocol", bound-api-gateway gets Routes:null, and the gateway's Envoy is
+# served an EMPTY listener set (the root cause of the edge 503s, identical on
+# consul 2.0 and 1.x). postgres stays tcp (no http route targets it).
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: gotak-server
+  namespace: gotak
+spec:
+  protocol: http
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: gotak-web
+  namespace: gotak
+spec:
+  protocol: http
