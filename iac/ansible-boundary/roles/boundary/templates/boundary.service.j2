@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+[Unit]
+Description=Boundary controller+worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/boundary server -config /etc/boundary/boundary.hcl
+Restart=on-failure
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

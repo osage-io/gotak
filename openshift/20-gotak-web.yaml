@@ -7,12 +7,12 @@ metadata:
     app.kubernetes.io/name: gotak
     app.kubernetes.io/component: web-ui
 data:
-  GOTAK_API_URL: "http://gotak-server:8080"
-  GOTAK_WS_URL: "ws://gotak-server:8087/ws"
-  # Vault address the browser talks to directly (transit/PKI/KV). Populated by
-  # deploy.sh from the live `vault` Route if the platform is installed; otherwise
-  # left blank and the UI falls back to its built-in default / config modal.
-  VAULT_ADDR: ""
+  # The browser hits these directly, so they're the external demoland.io hostnames
+  # (API Gateway + Vault Route), baked in for GitOps. deploy.sh can still override
+  # them from live Route hosts for the non-GitOps path.
+  GOTAK_API_URL: "https://gotak.demoland.io"
+  GOTAK_WS_URL: "wss://gotak.demoland.io/ws"
+  VAULT_ADDR: "https://vault.demoland.io"
   MAP_DEFAULT_LAT: "38.9072"
   MAP_DEFAULT_LNG: "-77.0369"
   MAP_DEFAULT_ZOOM: "12"

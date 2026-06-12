@@ -1,0 +1,35 @@
+---
+# Consul (Helm) — chart from the HashiCorp repo, values from this git repo.
+# Wave 1: brings up the service mesh + its CRDs before the gateway/intentions.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: consul
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: consul
+      targetRevision: 2.0.0
+      helm:
+        valueFiles:
+          - $values/openshift/platform/consul-values.yaml
+    - repoURL: https://github.com/osage-io/gotak.git
+      targetRevision: openshift-platform-vault-consul
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gotak
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff: { duration: 15s, maxDuration: 5m, factor: 2 }

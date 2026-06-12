@@ -25,8 +25,15 @@ server:
     size: 2Gi
     accessMode: ReadWriteOnce
 
+  # KMS seal key + region. The key id is the stable ALIAS (awskms accepts an
+  # alias), so this is committable and GitOps-friendly — no per-run --set. The
+  # KMS key+alias and the vault-aws-creds Secret are one-time imperative prereqs
+  # (install-platform.sh / refresh-vault-aws-creds.sh create them).
+  extraEnvironmentVars:
+    VAULT_AWSKMS_SEAL_KEY_ID: alias/gotak-vault-unseal
+    AWS_REGION: us-east-2
+
   # AWS creds for the KMS seal come from a Secret (see install-platform.sh).
-  # Region + key id are injected via --set at install time.
   extraSecretEnvironmentVars:
     - envName: AWS_ACCESS_KEY_ID
       secretName: vault-aws-creds

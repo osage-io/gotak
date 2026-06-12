@@ -1,0 +1,139 @@
+---
+# Install Boundary + a podman Postgres, render config, init the DB, run the service.
+# Idempotent: keys/passwords are generated once into /etc/boundary/keys.env and
+# reused, so re-runs don't rotate them or needlessly restart.
+
+- name: Install podman and unzip
+  ansible.builtin.dnf:
+    name: [podman, unzip]
+    state: present
+
+- name: Download Boundary
+  ansible.builtin.get_url:
+    url: "https://releases.hashicorp.com/boundary/{{ boundary_version }}/boundary_{{ boundary_version }}_linux_{{ boundary_arch }}.zip"
+    dest: "/tmp/boundary_{{ boundary_version }}.zip"
+    mode: "0644"
+
+- name: Unpack the Boundary binary
+  ansible.builtin.unarchive:
+    src: "/tmp/boundary_{{ boundary_version }}.zip"
+    dest: /usr/local/bin
+    remote_src: true
+    creates: /usr/local/bin/boundary
+    mode: "0755"
+
+- name: Ensure config dir
+  ansible.builtin.file:
+    path: /etc/boundary
+    state: directory
+    mode: "0700"
+
+- name: Check for existing keys/secrets
+  ansible.builtin.stat:
+    path: /etc/boundary/keys.env
+  register: keys_env
+
+- name: Generate aead keys + Postgres password (first run only)
+  when: not keys_env.stat.exists
+  block:
+    - name: Generate secrets
+      ansible.builtin.shell: |
+        umask 077
+        {
+          echo "boundary_key_root=$(openssl rand -base64 32)"
+          echo "boundary_key_worker_auth=$(openssl rand -base64 32)"
+          echo "boundary_key_recovery=$(openssl rand -base64 32)"
+          echo "boundary_pg_pass=$(openssl rand -hex 16)"
+        } > /etc/boundary/keys.env
+      args:
+        creates: /etc/boundary/keys.env
+
+- name: Load keys/secrets
+  ansible.builtin.slurp:
+    src: /etc/boundary/keys.env
+  register: keys_blob
+
+- name: Parse keys into vars
+  ansible.builtin.set_fact:
+    boundary_key_root: "{{ keys_kv.boundary_key_root }}"
+    boundary_key_worker_auth: "{{ keys_kv.boundary_key_worker_auth }}"
+    boundary_key_recovery: "{{ keys_kv.boundary_key_recovery }}"
+    boundary_pg_pass: "{{ keys_kv.boundary_pg_pass }}"
+  vars:
+    keys_kv: "{{ (keys_blob.content | b64decode).splitlines() | map('regex_replace', '^([^=]+)=(.*)$', '\\1: \"\\2\"') | join('\n') | from_yaml }}"
+
+- name: Resolve worker public address (default to node public IP)
+  when: boundary_public_addr is not defined or boundary_public_addr | length == 0
+  block:
+    - name: Get IMDSv2 token
+      ansible.builtin.uri:
+        url: http://169.254.169.254/latest/api/token
+        method: PUT
+        headers: { X-aws-ec2-metadata-token-ttl-seconds: "60" }
+        return_content: true
+      register: imds_token
+    - name: Get public IPv4
+      ansible.builtin.uri:
+        url: http://169.254.169.254/latest/meta-data/public-ipv4
+        headers: { X-aws-ec2-metadata-token: "{{ imds_token.content }}" }
+        return_content: true
+      register: node_ip
+    - name: Set public addr to node IP
+      ansible.builtin.set_fact:
+        boundary_public_addr: "{{ node_ip.content }}"
+
+- name: Run Postgres (podman) for Boundary state
+  ansible.builtin.command: >
+    podman run -d --name boundary-pg --restart=always
+    -e POSTGRES_USER=boundary -e POSTGRES_PASSWORD={{ boundary_pg_pass }} -e POSTGRES_DB=boundary
+    -p 127.0.0.1:5432:5432 docker.io/library/postgres:15
+  args:
+    creates: /etc/boundary/.pg-started
+  register: pg_run
+
+- name: Mark Postgres started
+  ansible.builtin.file:
+    path: /etc/boundary/.pg-started
+    state: touch
+  when: pg_run is changed
+
+- name: Wait for Postgres
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 5432
+    timeout: 60
+
+- name: Render boundary.hcl
+  ansible.builtin.template:
+    src: boundary.hcl.j2
+    dest: /etc/boundary/boundary.hcl
+    mode: "0600"
+  notify: restart boundary
+
+- name: Initialise the Boundary database (first run only)
+  ansible.builtin.shell: >
+    /usr/local/bin/boundary database init -config /etc/boundary/boundary.hcl
+    -format table > /etc/boundary/init-output.txt 2>&1
+  args:
+    creates: /etc/boundary/.db-initialized
+  register: db_init
+
+- name: Mark DB initialised
+  ansible.builtin.file:
+    path: /etc/boundary/.db-initialized
+    state: touch
+  when: db_init is changed
+
+- name: Install the systemd unit
+  ansible.builtin.template:
+    src: boundary.service.j2
+    dest: /etc/systemd/system/boundary.service
+    mode: "0644"
+  notify: restart boundary
+
+- name: Enable + start Boundary
+  ansible.builtin.systemd:
+    name: boundary
+    enabled: true
+    state: started
+    daemon_reload: true

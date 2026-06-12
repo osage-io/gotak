@@ -1,0 +1,103 @@
+---
+# Create the gotak org/project, a password login, an access role, and the
+# privileged-access targets — via the Boundary CLI using the recovery KMS.
+# Run-once: guarded by /etc/boundary/.targets-configured.
+
+- name: Check whether targets were already configured
+  ansible.builtin.stat:
+    path: /etc/boundary/.targets-configured
+  register: targets_marker
+
+- name: Configure Boundary resources
+  when: not targets_marker.stat.exists
+  environment:
+    BOUNDARY_ADDR: "http://127.0.0.1:9200"
+  block:
+    - name: Generate the login password
+      ansible.builtin.shell: "umask 077; openssl rand -hex 12 > /etc/boundary/login-pass.txt"
+      args:
+        creates: /etc/boundary/login-pass.txt
+    - name: Read login password
+      ansible.builtin.slurp:
+        src: /etc/boundary/login-pass.txt
+      register: login_pass_blob
+    - name: Set login password fact
+      ansible.builtin.set_fact:
+        boundary_login_pass: "{{ (login_pass_blob.content | b64decode) | trim }}"
+
+    - name: Create org scope
+      ansible.builtin.command: >
+        boundary scopes create -recovery-config /etc/boundary/boundary.hcl
+        -scope-id global -name gotak-org -description gotak -format json
+      register: org_out
+    - name: Create project scope
+      ansible.builtin.command: >
+        boundary scopes create -recovery-config /etc/boundary/boundary.hcl
+        -scope-id {{ (org_out.stdout | from_json).item.id }} -name gotak-project -format json
+      register: proj_out
+    - name: Set scope facts
+      ansible.builtin.set_fact:
+        org_id: "{{ (org_out.stdout | from_json).item.id }}"
+        proj_id: "{{ (proj_out.stdout | from_json).item.id }}"
+
+    - name: Create password auth method
+      ansible.builtin.command: >
+        boundary auth-methods create password -recovery-config /etc/boundary/boundary.hcl
+        -scope-id {{ org_id }} -name gotak-pw -format json
+      register: am_out
+    - name: Create account
+      ansible.builtin.command: >
+        boundary accounts create password -recovery-config /etc/boundary/boundary.hcl
+        -auth-method-id {{ (am_out.stdout | from_json).item.id }}
+        -login-name {{ boundary_login_name }} -password env://BOUNDARY_LOGIN_PASS -format json
+      environment:
+        BOUNDARY_LOGIN_PASS: "{{ boundary_login_pass }}"
+      register: acct_out
+    - name: Create user
+      ansible.builtin.command: >
+        boundary users create -recovery-config /etc/boundary/boundary.hcl
+        -scope-id {{ org_id }} -name {{ boundary_login_name }} -format json
+      register: user_out
+    - name: Associate account with user
+      ansible.builtin.command: >
+        boundary users add-accounts -recovery-config /etc/boundary/boundary.hcl
+        -id {{ (user_out.stdout | from_json).item.id }}
+        -account {{ (acct_out.stdout | from_json).item.id }}
+
+    - name: Create access role
+      ansible.builtin.command: >
+        boundary roles create -recovery-config /etc/boundary/boundary.hcl
+        -scope-id {{ proj_id }} -name gotak-access -grant-scope-id {{ proj_id }} -format json
+      register: role_out
+    - name: Add user to role
+      ansible.builtin.command: >
+        boundary roles add-principals -recovery-config /etc/boundary/boundary.hcl
+        -id {{ (role_out.stdout | from_json).item.id }}
+        -principal {{ (user_out.stdout | from_json).item.id }}
+    - name: Grant target access
+      ansible.builtin.command: >
+        boundary roles add-grants -recovery-config /etc/boundary/boundary.hcl
+        -id {{ (role_out.stdout | from_json).item.id }}
+        -grant "ids=*;type=target;actions=list,read,authorize-session"
+        -grant "ids=*;type=session;actions=list,read,read:self,cancel:self"
+
+    - name: Create targets
+      ansible.builtin.command: >
+        boundary targets create tcp -recovery-config /etc/boundary/boundary.hcl
+        -scope-id {{ proj_id }} -name {{ item.name }} -address {{ item.address }}
+        -default-port {{ item.port }} -session-connection-limit -1
+      loop: "{{ boundary_targets }}"
+      loop_control:
+        label: "{{ item.name }} -> {{ item.address }}:{{ item.port }}"
+
+    - name: Mark targets configured
+      ansible.builtin.file:
+        path: /etc/boundary/.targets-configured
+        state: touch
+
+    - name: Show login details
+      ansible.builtin.debug:
+        msg:
+          - "Boundary API:  http://{{ boundary_public_addr }}:9200"
+          - "Login:         {{ boundary_login_name }} / {{ boundary_login_pass }}"
+          - "(also saved on the node at /etc/boundary/login-pass.txt)"

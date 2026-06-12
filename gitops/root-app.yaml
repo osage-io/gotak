@@ -1,0 +1,27 @@
+---
+# App-of-apps: the single Application you apply by hand. It syncs every child
+# Application under gitops/apps, which in turn deploy the platform + app.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gotak-platform
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/osage-io/gotak.git
+    targetRevision: openshift-platform-vault-consul   # switch to main after merge
+    path: gitops/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      backoff:
+        duration: 15s
+        maxDuration: 5m
+        factor: 2

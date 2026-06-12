@@ -1,0 +1,6 @@
+---
+- name: restart boundary
+  ansible.builtin.systemd:
+    name: boundary
+    state: restarted
+    daemon_reload: true
