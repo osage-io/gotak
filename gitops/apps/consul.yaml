@@ -13,7 +13,9 @@ spec:
   sources:
     - repoURL: https://helm.releases.hashicorp.com
       chart: consul
-      targetRevision: 2.0.0
+      # 1.x line: consul 2.0.0's api-gateway served empty xDS (no listeners) — see
+      # docs/DEPLOYMENT pitfalls. 1.9.8 = Consul 1.22.7, the mature gateway path.
+      targetRevision: 1.9.8
       helm:
         valueFiles:
           - $values/openshift/platform/consul-values.yaml
