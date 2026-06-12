@@ -1,0 +1,41 @@
+---
+- name: Ensure base packages
+  become: true
+  ansible.builtin.dnf:
+    name: [git, tar, gzip, jq, cronie]
+    state: present
+
+- name: Ensure crond is running (cred-refresh cron later)
+  become: true
+  ansible.builtin.systemd:
+    name: crond
+    state: started
+    enabled: true
+
+- name: Download + extract openshift-install ({{ ocp_version }} aarch64)
+  become: true
+  ansible.builtin.unarchive:
+    src: "{{ ocp_mirror }}/openshift-install-linux.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    include: [openshift-install]
+    creates: /usr/local/bin/openshift-install
+
+- name: Download + extract oc / kubectl
+  become: true
+  ansible.builtin.unarchive:
+    src: "{{ ocp_mirror }}/openshift-client-linux.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    include: [oc, kubectl]
+    creates: /usr/local/bin/oc
+
+- name: Verify installer runs and payload is arm64
+  ansible.builtin.command: /usr/local/bin/openshift-install version
+  register: installer_version
+  changed_when: false
+  failed_when: "'release architecture arm64' not in installer_version.stdout"
+
+- name: Show installer version
+  ansible.builtin.debug:
+    msg: "{{ installer_version.stdout_lines }}"

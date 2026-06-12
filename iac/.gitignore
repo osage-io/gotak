@@ -13,3 +13,6 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+# SNO installer state + secrets (never commit)
+sno/
+ansible-sno/inventory.ini

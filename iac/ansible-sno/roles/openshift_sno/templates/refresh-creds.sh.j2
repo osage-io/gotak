@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Re-stamp the cluster's operator credential secrets with this node's current
+# instance-profile credentials. Cron-run every 30 min; instance-profile creds
+# rotate automatically, so the cluster never holds expired credentials long.
+set -euo pipefail
+
+export KUBECONFIG="{{ install_dir }}/auth/kubeconfig"
+OC=/usr/local/bin/oc
+
+[ -f "$KUBECONFIG" ] || { echo "kubeconfig not present yet; skipping"; exit 0; }
+
+TOKEN=$(curl -sX PUT http://169.254.169.254/latest/api/token \
+  -H 'X-aws-ec2-metadata-token-ttl-seconds: 900')
+ROLE=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/iam/security-credentials/)
+CREDS=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  "http://169.254.169.254/latest/meta-data/iam/security-credentials/${ROLE}")
+
+AKI=$(echo "$CREDS" | jq -r .AccessKeyId)
+SAK=$(echo "$CREDS" | jq -r .SecretAccessKey)
+TOK=$(echo "$CREDS" | jq -r .Token)
+
+INI="[default]
+aws_access_key_id = ${AKI}
+aws_secret_access_key = ${SAK}
+aws_session_token = ${TOK}"
+
+apply_secret() {
+  ns="$1"; name="$2"
+  "$OC" -n "$ns" create secret generic "$name" \
+    --from-literal=aws_access_key_id="$AKI" \
+    --from-literal=aws_secret_access_key="$SAK" \
+    --from-literal=credentials="$INI" \
+    --dry-run=client -o yaml | "$OC" apply -f - >/dev/null
+  echo "$(date -u +%FT%TZ) refreshed ${ns}/${name}"
+}
+
+{% for s in operator_secrets %}
+apply_secret "{{ s.namespace }}" "{{ s.name }}"
+{% endfor %}
