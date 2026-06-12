@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // Package main demonstrates the password security policy implementation
 // in GoTAK with comprehensive validation, scoring, and account lockout features.
 package main

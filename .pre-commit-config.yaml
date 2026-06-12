@@ -11,16 +11,12 @@ repos:
         description: Formats Go code using gofmt
         
       - id: go-imports
-        name: Fix Go imports  
+        name: Fix Go imports
         description: Fixes imports using goimports
         
       - id: go-mod-tidy
         name: Tidy Go modules
         description: Ensures go.mod and go.sum are up to date
-        
-      - id: go-vet-mod
-        name: Run go vet
-        description: Runs go vet on Go packages
         
       - id: golangci-lint
         name: Run golangci-lint
@@ -29,6 +25,16 @@ repos:
       - id: go-unit-tests
         name: Run Go unit tests
         description: Runs go test on changed packages only
+
+  - repo: local
+    hooks:
+      - id: go-vet-local
+        name: Run go vet
+        description: Runs go vet on all Go packages in the module
+        entry: bash -c 'go vet ./...'
+        language: system
+        pass_filenames: false
+        types: [go]
 
   # General file hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -107,7 +113,7 @@ repos:
         description: Lints shell scripts using ShellCheck
 
 # Configuration
-default_stages: [commit]
+default_stages: [pre-commit]
 fail_fast: true
 
 # Performance optimization - only run on changed files
