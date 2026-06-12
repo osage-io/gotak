@@ -18,7 +18,7 @@ Outputs consumed by `gotak-compute`: `vpc_id`, `public_subnet_ids`,
 Workflow is **VCS-driven** — pushes to this repo trigger plans; you confirm applies
 in the TFC UI.
 
-1. **Create the workspace** in org `org-LoxuyV1DiwAxdXPf`, inside the **goTak**
+1. **Create the workspace** in org `osage`, inside the **goTak**
    project (Projects group workspaces and let you scope a shared Variable Set):
    - Type: **Version control workflow** → connect GitHub repo **`osage-io/gotak`**.
    - **Project:** goTak

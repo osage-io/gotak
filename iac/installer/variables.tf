@@ -38,7 +38,7 @@ variable "ssh_public_key" {
 variable "tfc_organization" {
   description = "Terraform Cloud organization holding the gotak-network workspace."
   type        = string
-  default     = "org-LoxuyV1DiwAxdXPf"
+  default     = "osage"
 }
 
 variable "network_workspace_name" {
