@@ -56,6 +56,15 @@ spec:
         consul.hashicorp.com/connect-inject: "true"
     spec:
       serviceAccountName: gotak-postgres
+      # Pin the postgres UID. The PVC data is owned by 999 (image's postgres
+      # user, written under anyuid). Without this, SCC selection can flip to
+      # restricted-v2 (e.g. when the consul sidecar's injected securityContext
+      # changes admission) and postgres dies with "wrong ownership". Requesting
+      # uid 999 forces anyuid (the SA's binding) deterministically.
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
       containers:
         - name: postgres
           # imresamu/postgis is multi-arch (arm64); the official postgis/postgis
