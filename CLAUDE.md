@@ -2,6 +2,22 @@
 
 This file provides guidance to Claude (Anthropic's AI assistant) when working with code in this repository.
 
+## Spec-Driven Development Workflow
+
+**GoTAK follows a spec-driven development approach.** All work starts with a GitHub issue.
+
+When you say **"Open a ticket about: X"**, Claude will:
+1. **Ask clarifying questions** to understand requirements
+2. **Create a GitHub issue** with clear acceptance criteria
+3. **Create a feature branch** from main
+4. **Implement the solution** following the spec
+5. **Commit with issue reference**: `git commit -m "feat: description (closes #N)"`
+6. **Push and create PR** referencing the issue
+7. **Merge after approval** - issue auto-closes
+
+See **[SPEC_DRIVEN_DEVELOPMENT.md](SPEC_DRIVEN_DEVELOPMENT.md)** for the complete workflow, commands, and examples.
+
+
 ## Project Overview
 
 GoTAK is a high-performance, modern implementation of a TAK (Team Awareness Kit) server written in Go. It provides situational awareness and real-time coordination capabilities for military, first responders, and emergency management teams using the Cursor on Target (CoT) protocol.
