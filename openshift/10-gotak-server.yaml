@@ -96,7 +96,9 @@ spec:
           # Build + push from the repo Dockerfile, then set this to your registry path.
           image: ghcr.io/osage-io/gotak-server:latest
           imagePullPolicy: Always
-          args: ["-config", "/config/server.yaml"]
+          # The image entrypoint execs "$@" -config $GOTAK_CONFIG_PATH — args must
+          # be the binary; the config file is selected via GOTAK_CONFIG_PATH below.
+          args: ["/app/gotak-server"]
           # Entrypoint requires POSTGRES_PASSWORD (from the db secret) and
           # JWT_SECRET (gotak-server-env). Host/port/db/user use its defaults,
           # which match the postgres Service + gotak-db secret.
@@ -110,6 +112,8 @@ spec:
               value: "postgres"
             - name: POSTGRES_PORT
               value: "5432"
+            - name: GOTAK_CONFIG_PATH
+              value: "/config/server.yaml"
           ports:
             - containerPort: 8080
               name: http-api
