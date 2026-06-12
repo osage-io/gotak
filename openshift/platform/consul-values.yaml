@@ -5,6 +5,11 @@ global:
   datacenter: gotak
   openshift:
     enabled: true
+  # Fully-qualify to docker.io — the cluster's unqualified-search resolves bare
+  # hashicorp/* names to registry.connect.redhat.com (where they don't exist).
+  image: docker.io/hashicorp/consul:2.0.0
+  imageK8S: docker.io/hashicorp/consul-k8s-control-plane:2.0.0
+  imageConsulDataplane: docker.io/hashicorp/consul-dataplane:2.0.0
 
 server:
   replicas: 1

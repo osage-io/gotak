@@ -58,7 +58,9 @@ spec:
       serviceAccountName: gotak-postgres
       containers:
         - name: postgres
-          image: postgis/postgis:15-3.4
+          # imresamu/postgis is multi-arch (arm64); the official postgis/postgis
+          # is amd64-only -> "exec format error" on the Graviton node.
+          image: docker.io/imresamu/postgis:15-3.4
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
