@@ -1,4 +1,17 @@
 ---
+# Demo-grade runtime secrets for the server entrypoint (it hard-requires
+# POSTGRES_PASSWORD and JWT_SECRET as env vars).
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gotak-server-env
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+type: Opaque
+stringData:
+  JWT_SECRET: gotak-demo-jwt-secret-change-me-0a1b2c3d4e5f
+---
 # GoTAK server config. The server reads config/server.yaml, so we mount it from
 # this ConfigMap. database.host points at the in-cluster postgres Service.
 apiVersion: v1
@@ -76,6 +89,14 @@ spec:
           image: ghcr.io/osage-io/gotak-server:latest
           imagePullPolicy: Always
           args: ["-config", "/config/server.yaml"]
+          # Entrypoint requires POSTGRES_PASSWORD (from the db secret) and
+          # JWT_SECRET (gotak-server-env). Host/port/db/user use its defaults,
+          # which match the postgres Service + gotak-db secret.
+          envFrom:
+            - secretRef:
+                name: gotak-db
+            - secretRef:
+                name: gotak-server-env
           ports:
             - containerPort: 8080
               name: http-api
