@@ -12,6 +12,8 @@ A high-performance, modern implementation of a TAK (Team Awareness Kit) server w
 
 GoTAK is a compatible TAK server implementation that provides situational awareness and real-time coordination capabilities for military, first responders, and emergency management teams. It supports the Cursor on Target (CoT) protocol and is designed to be lightweight, fast, and highly scalable.
 
+> 📋 **Active Development**: See [GitHub Issues](.github/ISSUES/) for current work and the [Deployment Architecture Epic](.github/ISSUES/deployment-architecture-epic.md) (75% complete, 1 week remaining).
+
 ## Features
 
 - **CoT Protocol Support**: Full support for Cursor on Target XML messaging
@@ -389,7 +391,7 @@ GoTAK implements the standard CoT protocol with XML message format:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<event version="2.0" uid="unique-id" type="a-f-G" time="2024-01-01T12:00:00.000Z" 
+<event version="2.0" uid="unique-id" type="a-f-G" time="2024-01-01T12:00:00.000Z"
        start="2024-01-01T12:00:00.000Z" stale="2024-01-01T12:05:00.000Z" how="h-g">
     <point lat="37.7749" lon="-122.4194" hae="0" ce="1" le="1"/>
     <detail>

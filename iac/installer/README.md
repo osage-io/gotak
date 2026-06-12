@@ -1,39 +1,145 @@
-# gotak-installer — OpenShift installer/ops node (Workspace 3)
+# GoTAK Installer Node + KMS Key
 
-A small arm64 EC2 node (`t4g.medium`, AL2023) in the `gotak-network` public
-subnet. **Ansible drives it to run `openshift-install`** for the single-node
-OpenShift (SNO) cluster — see `../ansible/`. It persists afterward as the
-cluster ops box.
+Terraform workspace for the installer/bastion node and Vault KMS auto-unseal key.
 
-Why a node instead of a laptop install:
-- **Instance-profile credentials** — auto-rotating; the install can't die to
-  expired sandbox session tokens, and a cron here keeps the cluster's operator
-  credential secrets fresh.
-- Runs `openshift-install`/`ccoctl` natively on Linux/arm64.
-- Repeatable: Terraform provisions it, Ansible configures it (the demo story).
+## What This Creates
 
-## Terraform Cloud setup (one-time)
+1. **Installer Node** (`t4g.medium` arm64)
+   - Runs `openshift-install` and Ansible
+   - IAM instance profile with auto-rotating credentials
+   - SSH access for operations
 
-1. **Create the workspace** in org `osage`, **goTak** project:
-   - Version control workflow → repo `osage-io/gotak`
-   - **Working Directory:** `iac/installer` · Branch: `main`
-2. The **goTak project Variable Set** (AWS keys) already applies.
-3. **Remote state sharing:** on `gotak-network` → *Settings → Remote state
-   sharing* → also share with **`gotak-installer`**.
+2. **KMS Key for Vault** (NEW)
+   - Auto-unseal key for Vault
+   - Managed by Terraform (not bash script)
+   - Key rotation enabled
+   - 7-day deletion window
 
-## Apply
+## Prerequisites
 
-Merge to `main` → TFC plans `gotak-installer` → Confirm & Apply.
-Outputs include `ssh_command` (key: `~/.ssh/dfed01`).
+- Terraform Cloud workspace: `gotak-installer`
+- Network workspace applied: `gotak-network`
+- SSH public key (default: dfed01)
 
-## IAM notes
+## Usage
 
-The node's role carries the IPI installer permission set (EC2/ELB/Route53/S3 +
-the IAM role/instance-profile subset + PassRole). The sandbox SCP still blocks
-account-wide what it blocks (IAM users, OIDC providers) — the manual-credentials
-install path doesn't need those. `iam:PassRole` was probe-verified.
+### Initial Apply
 
-## Cost
+```bash
+cd iac/installer
+terraform init
+terraform plan
+terraform apply
+```
 
-`t4g.medium` ≈ $0.034/hr (~$0.80/day) + 40 GB gp3. Destroy via TFC when done
-(destroy the SNO cluster first — see `../ansible/`).
+### Outputs
+
+```bash
+# Get installer node IP
+terraform output public_ip
+
+# Get SSH command
+terraform output ssh_command
+
+# Get KMS key ID for Vault
+terraform output kms_key_id
+
+# Get KMS alias
+terraform output kms_alias
+```
+
+## KMS Key Management
+
+**Before this change:** The `install-platform.sh` script created the KMS key using AWS CLI.
+
+**After this change:** The KMS key is managed by Terraform in `kms.tf`.
+
+### Why Terraform?
+
+- **Infrastructure as Code**: Key lifecycle tracked in git
+- **State Management**: Terraform knows if key exists
+- **Idempotent**: Safe to run multiple times
+- **Proper Tagging**: Consistent resource tagging
+- **Key Rotation**: Enabled by default
+- **Deletion Protection**: 7-day window prevents accidents
+
+### Migration Path
+
+If you already have a KMS key created by the bash script:
+
+```bash
+# Import existing key into Terraform state
+terraform import aws_kms_key.vault_unseal <key-id>
+terraform import aws_kms_alias.vault_unseal alias/gotak-vault-unseal
+
+# Verify state
+terraform plan  # Should show no changes
+```
+
+## Platform Deployment
+
+After applying this workspace, deploy the platform:
+
+```bash
+cd ../../openshift/platform
+./install-platform.sh
+```
+
+The script now expects the KMS key to exist (created by Terraform).
+
+## IAM Permissions
+
+The installer role has these KMS permissions:
+
+- `kms:Encrypt`
+- `kms:Decrypt`
+- `kms:DescribeKey`
+- `kms:CreateKey`
+- `kms:CreateAlias`
+- `kms:ListKeys`
+- `kms:ListAliases`
+
+## Troubleshooting
+
+### KMS Key Not Found
+
+```
+ERROR: KMS key not found. Run 'terraform apply' in iac/installer first.
+```
+
+**Solution:** Apply this Terraform workspace first:
+```bash
+cd iac/installer
+terraform apply
+```
+
+### Permission Denied
+
+```
+Error: creating KMS Key: AccessDeniedException
+```
+
+**Solution:** Check your AWS credentials have KMS permissions. Sandbox accounts may restrict `kms:CreateKey`.
+
+### Key Already Exists
+
+If you get a conflict, import the existing key:
+```bash
+terraform import aws_kms_key.vault_unseal <existing-key-id>
+```
+
+## Files
+
+- `main.tf` - Installer node and IAM role
+- `kms.tf` - KMS key for Vault auto-unseal (NEW)
+- `outputs.tf` - Outputs including KMS key details
+- `variables.tf` - Input variables
+- `data.tf` - Data sources (AMI lookup, network state)
+- `providers.tf` - AWS provider configuration
+- `versions.tf` - Terraform version constraints
+
+## Related Documentation
+
+- [Platform Deployment](../../openshift/platform/README.md)
+- [Network Infrastructure](../network/README.md)
+- [Deployment Architecture](../../docs/DEPLOYMENT_ARCHITECTURE.md)

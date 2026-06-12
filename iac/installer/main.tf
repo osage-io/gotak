@@ -66,6 +66,20 @@ data "aws_iam_policy_document" "installer" {
   }
 
   statement {
+    sid = "KmsForVault"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:DescribeKey",
+      "kms:CreateKey",
+      "kms:CreateAlias",
+      "kms:ListKeys",
+      "kms:ListAliases",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
     sid = "IamForCluster"
     actions = [
       "iam:AddRoleToInstanceProfile",

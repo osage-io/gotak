@@ -22,3 +22,18 @@ output "ami_id" {
   description = "AMI the node booted from."
   value       = aws_instance.installer.ami
 }
+
+output "kms_key_id" {
+  description = "KMS key ID for Vault auto-unseal."
+  value       = aws_kms_key.vault_unseal.key_id
+}
+
+output "kms_key_arn" {
+  description = "KMS key ARN for Vault auto-unseal."
+  value       = aws_kms_key.vault_unseal.arn
+}
+
+output "kms_alias" {
+  description = "KMS key alias for Vault auto-unseal."
+  value       = aws_kms_alias.vault_unseal.name
+}

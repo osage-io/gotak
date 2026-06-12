@@ -26,22 +26,17 @@ echo ">> Namespace: $NS"
 oc get project "$NS" >/dev/null 2>&1 || oc new-project "$NS" >/dev/null
 
 # ---------------------------------------------------------------------------
-# 1. KMS key for auto-unseal (idempotent via an alias).
+# 1. KMS key for auto-unseal (managed by Terraform in iac/installer).
 # ---------------------------------------------------------------------------
-echo ">> Ensuring KMS key ($KMS_ALIAS)"
+echo ">> Looking up KMS key ($KMS_ALIAS)"
 KMS_KEY_ID="$(aws kms describe-key --key-id "$KMS_ALIAS" --region "$REGION" \
                 --query 'KeyMetadata.KeyId' --output text 2>/dev/null || true)"
 if [ -z "$KMS_KEY_ID" ] || [ "$KMS_KEY_ID" = "None" ]; then
-  KMS_KEY_ID="$(aws kms create-key --region "$REGION" \
-                  --description "gotak Vault auto-unseal" \
-                  --tags TagKey=app,TagValue=gotak \
-                  --query 'KeyMetadata.KeyId' --output text)"
-  aws kms create-alias --alias-name "$KMS_ALIAS" \
-      --target-key-id "$KMS_KEY_ID" --region "$REGION"
-  echo "   created $KMS_KEY_ID"
-else
-  echo "   reusing $KMS_KEY_ID"
+  echo "ERROR: KMS key not found. Run 'terraform apply' in iac/installer first."
+  echo "The KMS key is now managed by Terraform (iac/installer/kms.tf)."
+  exit 1
 fi
+echo "   using Terraform-managed key: $KMS_KEY_ID"
 
 # ---------------------------------------------------------------------------
 # 2. AWS creds Secret that Vault's KMS seal reads.
