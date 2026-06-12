@@ -23,6 +23,7 @@ for round-robin, or just one.
 | A    | `consul`   | `18.217.224.91`             | Consul UI |
 | A    | `consul`   | `18.116.145.144`            | (optional) |
 | A    | `sno`      | `16.58.42.236`              | kube-apiserver (`:6443`) — see API note below |
+| A    | `argo`     | `18.217.224.91`             | Argo CD console (`argo.demoland.io`, edge TLS) |
 
 **`sno.demoland.io` (the API) is special.** The kube-apiserver is *not* behind the
 OpenShift router — it has its own serving cert (SANs `api.gotak…`/`api-int…`), so
