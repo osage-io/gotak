@@ -35,25 +35,23 @@ server:
     size: 2Gi
     accessMode: ReadWriteOnce
 
-  # KMS seal key + region. The key id is the stable ALIAS (awskms accepts an
-  # alias), so this is committable and GitOps-friendly — no per-run --set. The
-  # KMS key+alias and the vault-aws-creds Secret are one-time imperative prereqs
-  # (install-platform.sh / refresh-vault-aws-creds.sh create them).
-  extraEnvironmentVars:
-    VAULT_AWSKMS_SEAL_KEY_ID: alias/gotak-vault-unseal
-    AWS_REGION: us-east-2
+  # Shamir seal (manual unseal) - no AWS KMS dependencies
+  # Note: Vault will need to be manually unsealed after each restart
+  # extraEnvironmentVars:
+  #   VAULT_AWSKMS_SEAL_KEY_ID: alias/gotak-vault-unseal
+  #   AWS_REGION: us-east-2
 
-  # AWS creds for the KMS seal come from a Secret (see install-platform.sh).
-  extraSecretEnvironmentVars:
-    - envName: AWS_ACCESS_KEY_ID
-      secretName: vault-aws-creds
-      secretKey: AWS_ACCESS_KEY_ID
-    - envName: AWS_SECRET_ACCESS_KEY
-      secretName: vault-aws-creds
-      secretKey: AWS_SECRET_ACCESS_KEY
-    - envName: AWS_SESSION_TOKEN
-      secretName: vault-aws-creds
-      secretKey: AWS_SESSION_TOKEN
+  # AWS creds disabled for Shamir seal
+  # extraSecretEnvironmentVars:
+  #   - envName: AWS_ACCESS_KEY_ID
+  #     secretName: vault-aws-creds
+  #     secretKey: AWS_ACCESS_KEY_ID
+  #   - envName: AWS_SECRET_ACCESS_KEY
+  #     secretName: vault-aws-creds
+  #     secretKey: AWS_SECRET_ACCESS_KEY
+  #   - envName: AWS_SESSION_TOKEN
+  #     secretName: vault-aws-creds
+  #     secretKey: AWS_SESSION_TOKEN
 
   # OpenShift Route — gotak's UI calls Vault from the browser, so Vault needs a
   # reachable external URL (not just the ClusterIP service).
@@ -86,8 +84,7 @@ server:
           path = "/vault/data"
         }
 
-        # Auto-unseal. key id + region are supplied via env
-        # (VAULT_AWSKMS_SEAL_KEY_ID, AWS_REGION) set by install-platform.sh.
-        seal "awskms" {}
+        # Shamir seal (manual unseal) - no AWS KMS
+        # seal "awskms" {}
 
         service_registration "kubernetes" {}
