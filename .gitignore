@@ -133,8 +133,8 @@ build/
 release/
 dist/
 
-# hashistack (local single-node Consul/Vault/Nomad dev runtime)
-hashistack/data/
-hashistack/logs/
-hashistack/run/
-hashistack/.rendered/
+# hashistack-local (local single-node Consul/Vault/Nomad dev runtime)
+hashistack-local/data/
+hashistack-local/logs/
+hashistack-local/run/
+hashistack-local/.rendered/

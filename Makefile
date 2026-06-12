@@ -272,20 +272,20 @@ db-migrate: ## Run database migrations
 
 # HashiStack (single-node Consul + Vault + Nomad dev runtime)
 hashi-up: ## Start local Consul, Vault, and Nomad in dev mode
-	@./hashistack/up.sh
+	@./hashistack-local/up.sh
 
 hashi-down: ## Stop local Consul, Vault, and Nomad
-	@./hashistack/down.sh
+	@./hashistack-local/down.sh
 
 hashi-status: ## Show local HashiStack status
-	@./hashistack/status.sh
+	@./hashistack-local/status.sh
 
 hashi-logs: ## Tail logs from the local HashiStack services
-	@tail -f hashistack/logs/consul.log hashistack/logs/vault.log hashistack/logs/nomad.log
+	@tail -f hashistack-local/logs/consul.log hashistack-local/logs/vault.log hashistack-local/logs/nomad.log
 
 # Nomad deployment (uses local HashiStack from `make hashi-up`)
 nomad-deploy: ## Deploy GoTAK standalone stack to local Nomad
-	@./hashistack/nomad-deploy.sh
+	@./hashistack-local/nomad-deploy.sh
 
 nomad-stop: ## Stop the GoTAK Nomad job
 	@NOMAD_ADDR=$${NOMAD_ADDR:-http://127.0.0.1:4646} nomad job stop -purge gotak-complete || true
