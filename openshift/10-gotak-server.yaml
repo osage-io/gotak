@@ -62,6 +62,10 @@ spec:
         # gotak-server; outbound to postgres is governed by an intention.
         consul.hashicorp.com/connect-inject: "true"
     spec:
+      # Pull secret for the private ghcr.io image (created by the
+      # iac/gotak-registry-secret Terraform workspace).
+      imagePullSecrets:
+        - name: ghcr
       securityContext:
         runAsNonRoot: true
         seccompProfile:

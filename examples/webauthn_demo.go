@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // WebAuthn MFA Demo - Example CLI tool for testing WebAuthn enrollment
 // This demonstrates the WebAuthn/FIDO2 MFA provider functionality
 package main
@@ -93,7 +96,7 @@ func main() {
 	}
 
 	credJSON, _ := json.Marshal(credResponse)
-	
+
 	// Verify enrollment
 	fmt.Printf("✅ Simulating credential creation response\n")
 	if err := provider.VerifyEnrollment(context.Background(), secret, string(credJSON)); err != nil {
@@ -106,14 +109,14 @@ func main() {
 	// Simulate authentication challenge
 	fmt.Println()
 	fmt.Println("🔒 Step 4: Create authentication challenge")
-	
+
 	// Create MFA factor from enrolled secret
 	factor := &mfa.MFAFactor{
-		ID:     uuid.New(),
-		UserID: userID,
-		Type:   mfa.MFATypeWebAuthn,
-		Name:   "Hardware Security Key",
-		Status: mfa.MFAStatusActive,
+		ID:       uuid.New(),
+		UserID:   userID,
+		Type:     mfa.MFATypeWebAuthn,
+		Name:     "Hardware Security Key",
+		Status:   mfa.MFAStatusActive,
 		Metadata: secret.Metadata, // Copy credential info
 	}
 
