@@ -15,6 +15,11 @@ ui:
 
 server:
   # Official image is multi-arch; schedules on the arm64 (Graviton) node as-is.
+  # Stay out of the Consul mesh: the gotak browser reaches Vault via its Route +
+  # CORS, not through a sidecar — a transparent-proxy sidecar would break that path.
+  annotations:
+    consul.hashicorp.com/connect-inject: "false"
+
   dataStorage:
     enabled: true
     size: 2Gi

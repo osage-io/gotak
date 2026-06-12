@@ -89,6 +89,13 @@ helm upgrade --install consul hashicorp/consul -n "$NS" \
   --wait --timeout 5m || true
 oc -n "$NS" rollout status statefulset/consul-server --timeout=180s 2>/dev/null || true
 
+# Mesh intentions (default-deny + explicit allows). Wait for the CRD that the
+# connect-inject controller registers, then apply.
+echo ">> Applying service-mesh intentions (default-deny + allows)"
+oc wait --for=condition=Established crd/serviceintentions.consul.hashicorp.com --timeout=120s 2>/dev/null || true
+oc apply -f "$DIR/consul-intentions.yaml" || \
+  echo "   (intentions will apply once the ServiceIntentions CRD is ready — re-run: oc apply -f consul-intentions.yaml)"
+
 echo ""
 echo ">> Platform up. Endpoints:"
 oc -n "$NS" get route 2>/dev/null | awk 'NR==1 || /vault|consul/'

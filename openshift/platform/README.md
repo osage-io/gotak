@@ -56,6 +56,43 @@ certs, the Anthropic API key in KV). So:
 Paste the **gotak token** (`.vault-gotak-token`) into the UI's Vault config when it
 asks for a token.
 
+## Service mesh (Consul Connect)
+
+Every app pod in the `gotak` namespace joins the mesh automatically
+(`connectInject.default: true`) — an Envoy sidecar is injected unless the pod is
+annotated `consul.hashicorp.com/connect-inject: "false"`. On OpenShift the traffic
+redirection is done by the **Consul CNI plugin via Multus**, so sidecars run under
+the restricted SCC (no privileged init container).
+
+**Who's in the mesh:** `gotak-web`, `gotak-server`, `postgres`. **Out:** Vault
+(reached by the browser via its Route + CORS) and Consul's own pods.
+
+**Intentions** ([`consul-intentions.yaml`](consul-intentions.yaml)) are **default-deny** —
+nothing talks to anything without an explicit allow:
+
+| Source | Destination | Why |
+|--------|-------------|-----|
+| `*` | `*` | **deny** (catch-all) |
+| `gotak-web` | `gotak-server` | UI/API calls that stay in-cluster |
+| `gotak-server` | `postgres` | the DB hop — fully mesh-enforced |
+
+`gotak-server → postgres` is the clean showcase: postgres has no Route, so all its
+inbound is meshed. Delete that intention and the server's DB connection breaks;
+re-add it and it recovers.
+
+```bash
+# watch enforcement
+oc apply -f consul-intentions.yaml          # default-deny + allows
+oc delete serviceintentions postgres -n gotak   # server -> postgres now blocked
+```
+
+**North-south caveat:** `gotak-web` and `gotak-server` are also reached from the
+browser through OpenShift Routes. The OpenShift router isn't a mesh member, so
+those pods exclude their Route-facing inbound ports from the proxy
+(`transparent-proxy-exclude-inbound-ports` annotation) — meaning north-south
+ingress bypasses mesh enforcement. To bring north-south fully into the mesh, front
+it with a **Consul API Gateway** instead of Routes.
+
 ## ⚠️ KMS auto-unseal and rotating creds
 
 Vault's KMS seal reads AWS creds **at pod start**. The sandbox STS creds expire

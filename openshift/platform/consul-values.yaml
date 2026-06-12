@@ -27,10 +27,28 @@ ui:
   service:
     type: ClusterIP
 
-# Keep the footprint small on a single node — no service mesh sidecars.
+# ---------------------------------------------------------------------------
+# Service mesh (Connect). Every app pod in the gotak namespace gets an Envoy
+# sidecar automatically (default: true) — opt a pod out with the annotation
+# consul.hashicorp.com/connect-inject: "false" (Vault sets that; Consul's own
+# pods are excluded by the chart).
+#
+# OpenShift note: transparent-proxy traffic redirection is done by the Consul
+# CNI plugin (via Multus) instead of a privileged init container, so the
+# sidecars run under the restricted SCC.
+# ---------------------------------------------------------------------------
 connectInject:
-  enabled: false
-controller:
-  enabled: false
+  enabled: true
+  default: true              # inject all pods in the namespace by default
+  transparentProxy:
+    defaultEnabled: true
+  cni:
+    enabled: true
+    logLevel: info
+    multus: true
+    cniBinDir: "/var/lib/cni/bin"
+    cniNetDir: "/etc/kubernetes/cni/net.d"
+
+# Catalog sync not needed — k8s Services are the source of truth for the mesh.
 syncCatalog:
   enabled: false

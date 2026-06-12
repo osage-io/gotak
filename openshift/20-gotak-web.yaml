@@ -37,6 +37,12 @@ spec:
       labels:
         app.kubernetes.io/name: gotak
         app.kubernetes.io/component: web-ui
+      annotations:
+        # Join the Consul service mesh. This pod is also a Route edge, so exclude
+        # the inbound http port from the proxy — the OpenShift router (not a mesh
+        # member) must still reach nginx. Outbound calls remain mesh-governed.
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "8080"
     spec:
       securityContext:
         runAsNonRoot: true

@@ -50,6 +50,10 @@ spec:
       labels:
         app.kubernetes.io/name: gotak
         app.kubernetes.io/component: database
+      annotations:
+        # Join the mesh. Postgres has no Route, so all inbound is mesh-enforced:
+        # only gotak-server may reach it (see consul-intentions.yaml).
+        consul.hashicorp.com/connect-inject: "true"
     spec:
       serviceAccountName: gotak-postgres
       containers:
