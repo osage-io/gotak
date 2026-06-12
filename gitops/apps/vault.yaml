@@ -25,6 +25,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: gotak
+  # The chart's Route has no host; the OpenShift router assigns one -> eternal
+  # spec.host drift. Ignore it (RespectIgnoreDifferences keeps sync from
+  # stomping the assigned host).
+  ignoreDifferences:
+    - group: route.openshift.io
+      kind: Route
+      jsonPointers:
+        - /spec/host
   syncPolicy:
     automated:
       prune: true
@@ -32,6 +40,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 10
       backoff: { duration: 15s, maxDuration: 5m, factor: 2 }

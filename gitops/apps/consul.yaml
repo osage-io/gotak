@@ -23,6 +23,14 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: gotak
+  # Argo's SSA diff flags consul-server's volumeClaimTemplates even though a
+  # server-side diff is empty (known StatefulSet normalization quirk). Ignore.
+  ignoreDifferences:
+    - group: apps
+      kind: StatefulSet
+      name: consul-server
+      jsonPointers:
+        - /spec/volumeClaimTemplates
   syncPolicy:
     automated:
       prune: true
@@ -30,6 +38,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
+      - RespectIgnoreDifferences=true
     retry:
       limit: 10
       backoff: { duration: 15s, maxDuration: 5m, factor: 2 }
