@@ -19,6 +19,12 @@ injector:
     repository: docker.io/hashicorp/vault
   # Single-node cluster: disable pod anti-affinity
   affinity: null
+  # Stay out of the Consul mesh. The injector's webhook is called by the
+  # kube-apiserver (not a mesh member), so a consul-dataplane sidecar +
+  # transparent proxy walls it off and the rollout wedges. Same exclusion the
+  # Vault server pod has.
+  annotations:
+    consul.hashicorp.com/connect-inject: "false"
 
 ui:
   enabled: true
