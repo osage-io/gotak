@@ -78,6 +78,11 @@ spec:
         # without this annotation the sidecar runs but nothing is intercepted.
         k8s.v1.cni.cncf.io/networks: consul-cni
     spec:
+      # Kill k8s docker-link env injection: a Service named "postgres" injects
+      # POSTGRES_PORT=tcp://<clusterip>:5432 into every pod, clobbering the
+      # entrypoint's POSTGRES_PORT=5432 default -> pg_isready got an invalid
+      # port and never connected.
+      enableServiceLinks: false
       # Pull secret for the private ghcr.io image (created by the
       # iac/gotak-registry-secret Terraform workspace).
       imagePullSecrets:
@@ -100,6 +105,11 @@ spec:
                 name: gotak-db
             - secretRef:
                 name: gotak-server-env
+          env:
+            - name: POSTGRES_HOST
+              value: "postgres"
+            - name: POSTGRES_PORT
+              value: "5432"
           ports:
             - containerPort: 8080
               name: http-api
