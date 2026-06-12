@@ -49,6 +49,11 @@ ui:
 connectInject:
   enabled: true
   default: true              # inject all pods in the namespace by default
+  # Ignore (not the chart default "Fail"): if the injector pod is ever down, pods
+  # just deploy without a sidecar instead of being BLOCKED cluster-wide. With
+  # "Fail" a broken injector deadlocks the control plane (openshift-apiserver
+  # can't create its own pods) — which is exactly what bit us on first sync.
+  failurePolicy: "Ignore"
   transparentProxy:
     defaultEnabled: true
   cni:
