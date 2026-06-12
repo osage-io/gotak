@@ -95,6 +95,9 @@ spec:
         # Route and no inbound exclusions. Reachable only via gateway -> gotak-web
         # (see consul-intentions.yaml).
         consul.hashicorp.com/connect-inject: "true"
+        # Multus must invoke the consul-cni plugin for traffic redirection —
+        # without this annotation the sidecar runs but nothing is intercepted.
+        k8s.v1.cni.cncf.io/networks: consul-cni
     spec:
       # Pull secret for the private ghcr.io image (created by the
       # iac/gotak-registry-secret Terraform workspace).

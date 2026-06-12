@@ -49,6 +49,11 @@ ui:
 connectInject:
   enabled: true
   default: true              # inject all pods in the namespace by default
+  # Scope injection to the gotak namespace ONLY. Without this the injector
+  # (default-inject + allow-namespace "*") meshes cluster infrastructure —
+  # image-registry, metrics-server, CSI pods — which pollutes the catalog and,
+  # once redirection works, would default-deny core cluster traffic.
+  k8sAllowNamespaces: ["gotak"]
   # Ignore (not the chart default "Fail"): if the injector pod is ever down, pods
   # just deploy without a sidecar instead of being BLOCKED cluster-wide. With
   # "Fail" a broken injector deadlocks the control plane (openshift-apiserver

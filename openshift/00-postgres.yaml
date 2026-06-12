@@ -54,6 +54,9 @@ spec:
         # Join the mesh. Postgres has no Route, so all inbound is mesh-enforced:
         # only gotak-server may reach it (see consul-intentions.yaml).
         consul.hashicorp.com/connect-inject: "true"
+        # Multus must invoke the consul-cni plugin for traffic redirection —
+        # without this annotation the sidecar runs but nothing is intercepted.
+        k8s.v1.cni.cncf.io/networks: consul-cni
     spec:
       serviceAccountName: gotak-postgres
       # SCC note: with the consul sidecar injected, the pod can ONLY validate
