@@ -14,19 +14,6 @@
 #   /ws   -> gotak-server:8087   (WebSocket / TAK stream)
 #   /     -> gotak-web:8080      (the SPA itself)
 
-# ClusterIP service for the gateway — we front it with an OpenShift Route rather
-# than provisioning an AWS LoadBalancer on the single node.
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: GatewayClassConfig
-metadata:
-  name: gotak-gateway-config
-spec:
-  serviceType: ClusterIP
-  # Required on OpenShift: which SCC the managed gateway's Role grants `use` on.
-  # Without it the controller writes an empty resourceName grant and reconcile
-  # fails on RBAC escalation ("attempting to grant ... not currently held").
-  openshiftSCCName: restricted-v2
----
 # The gateway controller (in the connect-injector) creates a Role granting
 # `use` on the SCC above. RBAC escalation rules require the grantor to HOLD
 # that permission first.
@@ -54,23 +41,15 @@ subjects:
     namespace: gotak
 ---
 apiVersion: gateway.networking.k8s.io/v1beta1
-kind: GatewayClass
-metadata:
-  name: gotak-consul
-spec:
-  controllerName: consul.hashicorp.com/gateway-controller
-  parametersRef:
-    group: consul.hashicorp.com
-    kind: GatewayClassConfig
-    name: gotak-gateway-config
----
-apiVersion: gateway.networking.k8s.io/v1beta1
 kind: Gateway
 metadata:
   name: gotak-gateway
   namespace: gotak
 spec:
-  gatewayClassName: gotak-consul
+  # The chart-managed class — the only one the consul-k8s controller reconciles.
+  # Its config (serviceType: ClusterIP, openshiftSCCName) comes from
+  # connectInject.apiGateway.managedGatewayClass in consul-values.yaml.
+  gatewayClassName: consul
   listeners:
     - name: http
       protocol: HTTP

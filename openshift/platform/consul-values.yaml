@@ -48,6 +48,13 @@ ui:
 # ---------------------------------------------------------------------------
 connectInject:
   enabled: true
+  # The chart-managed GatewayClass ("consul") is the only class the consul-k8s
+  # gateway controller reconciles — custom classes sit at "Waiting for
+  # controller" forever. Front the gateway with our edge Route instead of a
+  # cloud LB: ClusterIP.
+  apiGateway:
+    managedGatewayClass:
+      serviceType: ClusterIP
   default: true              # inject all pods in the namespace by default
   # Scope injection to the gotak namespace ONLY. Without this the injector
   # (default-inject + allow-namespace "*") meshes cluster infrastructure —
