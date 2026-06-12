@@ -4,7 +4,7 @@ import { Message } from '../types/comms';
 // The Anthropic API key is stored in Vault (see the Integrations → Anthropic
 // modal). Read it from there at call time so the key lives in the secrets
 // engine rather than the browser. Demo uses the dev root token directly.
-const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_ADDR = (typeof window !== 'undefined' && (window as any).GOTAK_CONFIG?.vaultUrl) || 'http://127.0.0.1:8200';
 const VAULT_TOKEN = 'root';
 const ANTHROPIC_KV_PATH = 'secret/data/gotak/anthropic';
 

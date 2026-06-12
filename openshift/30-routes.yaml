@@ -1,0 +1,53 @@
+---
+# OpenShift Routes (replace k8s Ingress). Edge-terminated TLS.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: gotak-web
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: web-ui
+spec:
+  to:
+    kind: Service
+    name: gotak-web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: gotak-api
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+spec:
+  to:
+    kind: Service
+    name: gotak-server
+  port:
+    targetPort: http-api
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+# WebSocket / TAK stream. OpenShift Routes support WebSocket upgrade on edge.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: gotak-ws
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+spec:
+  to:
+    kind: Service
+    name: gotak-server
+  port:
+    targetPort: ws-tak
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

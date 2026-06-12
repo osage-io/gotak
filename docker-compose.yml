@@ -113,7 +113,7 @@ services:
     image: gotak/web:${VERSION:-latest}
     container_name: gotak-web
     ports:
-      - "80:80"
+      - "80:8080"
     environment:
       - GOTAK_API_URL=http://gotak:8080
       - GOTAK_WS_URL=ws://gotak:8087/ws

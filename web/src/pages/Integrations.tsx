@@ -11,7 +11,7 @@ import './Integrations.css';
 // --- Vault KV secrets engine — store the Anthropic API key (DEMO ONLY) -----
 // We talk to the local dev Vault directly with the root token, same as the rest
 // of the demo. Do NOT ship a root token in frontend code outside a demo.
-const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_ADDR = (typeof window !== 'undefined' && (window as any).GOTAK_CONFIG?.vaultUrl) || 'http://127.0.0.1:8200';
 const VAULT_TOKEN = 'root';
 const ANTHROPIC_KV_PATH = 'secret/data/gotak/anthropic'; // KV v2 data API path
 const ANTHROPIC_KV_DISPLAY = 'secret/gotak/anthropic';   // logical path (for display)

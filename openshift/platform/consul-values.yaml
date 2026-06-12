@@ -1,0 +1,36 @@
+# Consul on Single-Node OpenShift — single server, demo-grade.
+# Deployed into the same `gotak` namespace as Vault and the app.
+global:
+  name: consul
+  datacenter: gotak
+  openshift:
+    enabled: true
+
+server:
+  replicas: 1
+  bootstrapExpect: 1
+  # Official image is multi-arch; runs on the arm64 node as-is.
+  storage: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+client:
+  enabled: true
+
+ui:
+  enabled: true
+  service:
+    type: ClusterIP
+
+# Keep the footprint small on a single node — no service mesh sidecars.
+connectInject:
+  enabled: false
+controller:
+  enabled: false
+syncCatalog:
+  enabled: false
