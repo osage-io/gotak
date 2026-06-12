@@ -22,6 +22,19 @@ for round-robin, or just one.
 | A    | `vault`    | `18.116.145.144`            | (optional) |
 | A    | `consul`   | `18.217.224.91`             | Consul UI |
 | A    | `consul`   | `18.116.145.144`            | (optional) |
+| A    | `sno`      | `16.58.42.236`              | kube-apiserver (`:6443`) — see API note below |
+
+**`sno.demoland.io` (the API) is special.** The kube-apiserver is *not* behind the
+OpenShift router — it has its own serving cert (SANs `api.gotak…`/`api-int…`), so
+the A record routes fine but TLS won't match until you serve the wildcard there.
+Run `apiserver-named-cert.sh` to bind `*.demoland.io` to the API for the
+`sno.demoland.io` SNI (triggers a kube-apiserver rollout — single-node => brief API
+blip), or just use `oc login --insecure-skip-tls-verify`.
+
+Re-check the API IP any time with:
+```bash
+dig +short api.gotak.daniel-fedick.aws.sbx.hashicorpdemo.com
+```
 
 Re-check the current IPs any time with:
 ```bash
