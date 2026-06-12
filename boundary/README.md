@@ -30,7 +30,9 @@ scp -i ~/.ssh/dfed01 boundary/install-boundary.sh boundary/boundary-config.hcl.t
 
 # on the node
 ssh -i ~/.ssh/dfed01 ec2-user@<node-ip>
-sudo bash install-boundary.sh        # installs Boundary + podman Postgres, inits DB, starts systemd
+sudo BOUNDARY_PUBLIC_ADDR=boundary.demoland.io bash install-boundary.sh
+#   ^ omit BOUNDARY_PUBLIC_ADDR to use the raw node public IP instead.
+#   Add a Namecheap A record: boundary -> <node public IP>  (no cert needed).
 ```
 
 **Save the `boundary database init` output** it prints (also in

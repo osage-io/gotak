@@ -40,7 +40,10 @@ fi
 
 echo ">> Rendering $CFG_DIR/boundary.hcl"
 mkdir -p "$CFG_DIR"
-PUBLIC_ADDR="$(curl -fsS -H 'X-aws-ec2-metadata-token: '"$(curl -fsS -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')" http://169.254.169.254/latest/meta-data/public-ipv4)"
+# Worker proxy address your client connects to. Defaults to the node's public IP;
+# set BOUNDARY_PUBLIC_ADDR=boundary.demoland.io once that DNS A record exists.
+NODE_IP="$(curl -fsS -H 'X-aws-ec2-metadata-token: '"$(curl -fsS -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')" http://169.254.169.254/latest/meta-data/public-ipv4)"
+PUBLIC_ADDR="${BOUNDARY_PUBLIC_ADDR:-$NODE_IP}"
 gen_key() { openssl rand -base64 32; }
 sed -e "s|__PG_PASS__|$PG_PASS|g" \
     -e "s|__PUBLIC_ADDR__|$PUBLIC_ADDR|g" \
