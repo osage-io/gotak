@@ -1,0 +1,19 @@
+---
+# Ansible configures the platform + security layers AFTER Terraform builds the cluster.
+# With ROSA (managed nodes) there are no OS-level servers to configure, so Ansible's job
+# is platform/app configuration. Bob generates the task detail; roles keep it reusable
+# (the "playbook -> reusable role" beat from the IBM Bob demo).
+
+- name: Configure zero-trust platform on the OpenShift cluster
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - role: vault       # init/unseal, enable OIDC auth, write policies + DB role
+    - role: consul      # bootstrap ACLs, service-intentions
+    - role: boundary    # scopes, OIDC auth method, targets
+    - role: keycloak    # realm "gotak", agent client, mappers
+    - role: gotak       # render server.yaml, apply ../../openshift manifests
+
+# PATH B note: if using self-managed EC2 nodes (UPI), add a play here with
+#   hosts: openshift_nodes  -> roles to prep RHCOS/bootstrap before the platform roles.

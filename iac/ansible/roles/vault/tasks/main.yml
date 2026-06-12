@@ -1,0 +1,16 @@
+---
+# Example role stub. Bob generates the real tasks; this fixes the structure so all five
+# roles (vault/consul/boundary/keycloak/gotak) follow the same reusable shape.
+
+- name: Enable OIDC auth backend (federate to Keycloak)
+  # community.hashi_vault / uri module against the Vault API
+  ansible.builtin.debug:
+    msg: "TODO(Bob): enable oidc auth, discovery_url={{ keycloak_realm_url }}"
+
+- name: Write gotak-agent policy
+  ansible.builtin.debug:
+    msg: "TODO(Bob): write Vault policy scoping the agent to its dynamic secrets"
+
+- name: Configure database secrets engine for dynamic Postgres creds
+  ansible.builtin.debug:
+    msg: "TODO(Bob): configure db engine + role gotak"
