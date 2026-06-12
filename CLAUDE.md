@@ -7,13 +7,15 @@ This file provides guidance to Claude (Anthropic's AI assistant) when working wi
 **GoTAK follows a spec-driven development approach.** All work starts with a GitHub issue.
 
 When you say **"Open a ticket about: X"**, Claude will:
-1. **Ask clarifying questions** to understand requirements
+1. **Ask clarifying questions in wizard/menu format** with options to make it easier
 2. **Create a GitHub issue** with clear acceptance criteria
 3. **Create a feature branch** from main
 4. **Implement the solution** following the spec
 5. **Commit with issue reference**: `git commit -m "feat: description (closes #N)"`
 6. **Push and create PR** referencing the issue
 7. **Merge after approval** - issue auto-closes
+
+**Clarification Style**: Questions are presented as a wizard with multiple-choice options, checkboxes, and suggestions to streamline the process and make decisions easier.
 
 See **[SPEC_DRIVEN_DEVELOPMENT.md](SPEC_DRIVEN_DEVELOPMENT.md)** for the complete workflow, commands, and examples.
 
@@ -197,7 +199,7 @@ func TestFunction(t *testing.T) {
         {name: "valid case", input: x, expected: y, wantErr: false},
         {name: "error case", input: z, expected: nil, wantErr: true},
     }
-    
+
     for _, tc := range testCases {
         t.Run(tc.name, func(t *testing.T) {
             result, err := Function(tc.input)
