@@ -1,0 +1,13 @@
+---
+# Install + configure Boundary (controller + worker) on the EC2 node as the
+# privileged-access bastion for the gotak environment.
+#
+#   ansible-playbook -i inventory.ini site.yml
+#
+# Run just one phase with tags:  --tags install   |   --tags targets
+- name: Boundary PAM bastion
+  hosts: boundary
+  become: true
+  gather_facts: true
+  roles:
+    - boundary

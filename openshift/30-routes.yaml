@@ -1,0 +1,12 @@
+# NOTE: north-south ingress for gotak now goes through the Consul API Gateway,
+# not per-service OpenShift Routes. See openshift/platform/consul-api-gateway.yaml
+# (Gateway + HTTPRoute + a single edge Route fronting the gateway).
+#
+# gotak-web and gotak-server therefore have no Routes of their own — they are
+# reachable only through the gateway over mTLS, governed by intentions
+# (gateway -> gotak-web, gateway -> gotak-server).
+#
+# This file is intentionally left as documentation only; deploy.sh no longer
+# applies it. If you want to run the app WITHOUT the mesh/gateway (e.g. plain
+# OpenShift Local), restore simple edge Routes to the gotak-web and gotak-server
+# Services here and re-add the apply in deploy.sh.

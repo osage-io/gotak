@@ -1,0 +1,30 @@
+---
+# Consul API Gateway (Gateway + HTTPRoute + GatewayClass + edge Route).
+# Wave 2: needs Consul's Gateway API CRDs (from the consul app) to exist first.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-gateway
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/osage-io/gotak.git
+    targetRevision: openshift-platform-vault-consul
+    path: openshift/platform
+    directory:
+      include: consul-api-gateway.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gotak
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 10
+      backoff: { duration: 15s, maxDuration: 5m, factor: 2 }

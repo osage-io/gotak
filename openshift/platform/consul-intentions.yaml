@@ -1,0 +1,63 @@
+---
+# Consul service-mesh intentions for gotak.
+#
+# Model: default-deny. Nothing in the mesh may talk to anything unless an
+# explicit allow intention exists below. (Intentions are enforced independently
+# of Consul ACLs, so we don't need ACLs enabled to get default-deny.)
+#
+# Enforced mesh paths (all north-south now enters via the Consul API Gateway):
+#   gotak-gateway -> gotak-web      (serves the SPA)
+#   gotak-gateway -> gotak-server   (/api + /ws)
+#   gotak-server  -> postgres       (the DB hop; postgres has no Route, so all
+#                                    of its inbound is mesh-enforced)
+#
+# The OpenShift Route now fronts only the gateway, so gotak-web and gotak-server
+# carry no Route of their own and no inbound-port exclusions — they are fully
+# mesh-enforced behind the gateway.
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: default-deny
+  namespace: gotak
+spec:
+  destination:
+    name: "*"
+  sources:
+    - name: "*"
+      action: deny
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: gotak-web
+  namespace: gotak
+spec:
+  destination:
+    name: gotak-web
+  sources:
+    - name: gotak-gateway
+      action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: gotak-server
+  namespace: gotak
+spec:
+  destination:
+    name: gotak-server
+  sources:
+    - name: gotak-gateway
+      action: allow
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: postgres
+  namespace: gotak
+spec:
+  destination:
+    name: postgres
+  sources:
+    - name: gotak-server
+      action: allow

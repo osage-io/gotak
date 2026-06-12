@@ -1,0 +1,93 @@
+# Vault on Single-Node OpenShift — demo-grade, single replica, AWS KMS auto-unseal.
+#
+# Storage:  integrated raft (single node).
+# Seal:     awskms — the stanza is declared here; the key id, region, and AWS
+#           creds are injected as env vars by install-platform.sh (key id/region
+#           via --set, creds via the vault-aws-creds Secret below). This keeps the
+#           per-run KMS key id out of version control.
+# Exposure: an OpenShift Route (edge TLS) is created by this chart so the gotak
+#           browser can reach Vault directly. CORS is enabled post-init.
+global:
+  openshift: true
+
+# Fully-qualify images to docker.io (the cluster resolves bare hashicorp/* to
+# registry.connect.redhat.com, where they don't exist).
+injector:
+  image:
+    repository: docker.io/hashicorp/vault-k8s
+  agentImage:
+    repository: docker.io/hashicorp/vault
+
+ui:
+  enabled: true
+
+server:
+  image:
+    repository: docker.io/hashicorp/vault
+  # Official image is multi-arch; schedules on the arm64 (Graviton) node as-is.
+  # Stay out of the Consul mesh: the gotak browser reaches Vault via its Route +
+  # CORS, not through a sidecar — a transparent-proxy sidecar would break that path.
+  annotations:
+    consul.hashicorp.com/connect-inject: "false"
+
+  dataStorage:
+    enabled: true
+    size: 2Gi
+    accessMode: ReadWriteOnce
+
+  # KMS seal key + region. The key id is the stable ALIAS (awskms accepts an
+  # alias), so this is committable and GitOps-friendly — no per-run --set. The
+  # KMS key+alias and the vault-aws-creds Secret are one-time imperative prereqs
+  # (install-platform.sh / refresh-vault-aws-creds.sh create them).
+  extraEnvironmentVars:
+    VAULT_AWSKMS_SEAL_KEY_ID: alias/gotak-vault-unseal
+    AWS_REGION: us-east-2
+
+  # AWS creds for the KMS seal come from a Secret (see install-platform.sh).
+  extraSecretEnvironmentVars:
+    - envName: AWS_ACCESS_KEY_ID
+      secretName: vault-aws-creds
+      secretKey: AWS_ACCESS_KEY_ID
+    - envName: AWS_SECRET_ACCESS_KEY
+      secretName: vault-aws-creds
+      secretKey: AWS_SECRET_ACCESS_KEY
+    - envName: AWS_SESSION_TOKEN
+      secretName: vault-aws-creds
+      secretKey: AWS_SESSION_TOKEN
+
+  # OpenShift Route — gotak's UI calls Vault from the browser, so Vault needs a
+  # reachable external URL (not just the ClusterIP service).
+  route:
+    enabled: true
+    host: ""              # let OpenShift assign apps.<cluster-domain>
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+
+  standalone:
+    enabled: false
+
+  ha:
+    enabled: true
+    replicas: 1
+    raft:
+      enabled: true
+      setNodeId: true
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable     = 1
+          address         = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+
+        storage "raft" {
+          path = "/vault/data"
+        }
+
+        # Auto-unseal. key id + region are supplied via env
+        # (VAULT_AWSKMS_SEAL_KEY_ID, AWS_REGION) set by install-platform.sh.
+        seal "awskms" {}
+
+        service_registration "kubernetes" {}

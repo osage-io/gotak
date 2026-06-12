@@ -1,0 +1,56 @@
+# {{ ansible_managed }}
+# Boundary controller+worker for the gotak demo, rendered by Ansible.
+disable_mlock = true
+
+controller {
+  name        = "gotak-controller"
+  description = "gotak Boundary controller"
+  database {
+    url = "postgresql://boundary:{{ boundary_pg_pass }}@127.0.0.1:5432/boundary?sslmode=disable"
+  }
+}
+
+worker {
+  name              = "gotak-worker"
+  description       = "gotak ingress worker"
+  public_addr       = "{{ boundary_public_addr }}"
+  initial_upstreams = ["127.0.0.1:9201"]
+}
+
+listener "tcp" {
+  address     = "0.0.0.0:9200"
+  purpose     = "api"
+  tls_disable = true
+}
+
+listener "tcp" {
+  address = "0.0.0.0:9201"
+  purpose = "cluster"
+}
+
+listener "tcp" {
+  address     = "0.0.0.0:9202"
+  purpose     = "proxy"
+  tls_disable = true
+}
+
+kms "aead" {
+  purpose   = "root"
+  aead_type = "aes-gcm"
+  key       = "{{ boundary_key_root }}"
+  key_id    = "global_root"
+}
+
+kms "aead" {
+  purpose   = "worker-auth"
+  aead_type = "aes-gcm"
+  key       = "{{ boundary_key_worker_auth }}"
+  key_id    = "global_worker-auth"
+}
+
+kms "aead" {
+  purpose   = "recovery"
+  aead_type = "aes-gcm"
+  key       = "{{ boundary_key_recovery }}"
+  key_id    = "global_recovery"
+}

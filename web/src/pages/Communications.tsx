@@ -13,7 +13,7 @@ import './Communications.css';
 // --- Vault transit encryption (DEMO ONLY) ---------------------------------
 // For the demo we talk to the local Vault directly with the dev root token.
 // Do NOT ship a root token in frontend code outside a throwaway demo.
-const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_ADDR = (typeof window !== 'undefined' && (window as any).GOTAK_CONFIG?.vaultUrl) || 'http://127.0.0.1:8200';
 const VAULT_TOKEN = 'root';
 const DEFAULT_TRANSIT_KEY = 'gotak-comms';
 

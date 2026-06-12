@@ -11,7 +11,7 @@ import './Entities-new.css';
 // Issue / revoke per-device mTLS client certs from Vault's PKI engine. As with
 // the rest of the demo we talk to Vault directly with the dev root token — do
 // NOT ship a root token in frontend code outside a throwaway demo.
-const VAULT_ADDR = 'http://127.0.0.1:8200';
+const VAULT_ADDR = (typeof window !== 'undefined' && (window as any).GOTAK_CONFIG?.vaultUrl) || 'http://127.0.0.1:8200';
 const VAULT_TOKEN = 'root';
 const PKI_ROLE = 'gotak-device';
 const CERT_TTL = '168h'; // 7 days

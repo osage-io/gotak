@@ -133,7 +133,7 @@ services:
     image: gotak/web:latest  # Use newly built image
     container_name: gotak-web-dev
     ports:
-      - "8087:80"  # Web UI on port 8087 as requested
+      - "8087:8080"  # Web UI on port 8087 as requested
     environment:
       - GOTAK_SERVER_URL=ws://localhost:8088  # Updated for new TAK port
       - GOTAK_API_URL=http://localhost:8090

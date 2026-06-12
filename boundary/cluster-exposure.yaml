@@ -1,0 +1,58 @@
+# Cluster-side exposure so the node-based Boundary worker can reach in-cluster
+# targets. Apply with: oc apply -f cluster-exposure.yaml
+#
+# - OpenShift API and the Vault Route are already externally reachable; nothing
+#   needed for those.
+# - Consul UI is ClusterIP by default -> add an edge Route here.
+# - In-cluster Postgres is a meshed ClusterIP -> add a NodePort so the off-cluster
+#   worker can reach it via the SNO node IP.
+#
+#   ⚠️ Postgres is in the service mesh: its inbound 5432 is redirected to the Envoy
+#   sidecar, which DENIES the off-mesh NodePort connection under default-deny. To
+#   let Boundary reach it you must exclude that port from the proxy:
+#
+#       oc patch deploy postgres -n gotak --type merge -p \
+#         '{"spec":{"template":{"metadata":{"annotations":
+#          {"consul.hashicorp.com/transparent-proxy-exclude-inbound-ports":"5432"}}}}}'
+#
+#   That trades off enforcement of the gotak-server -> postgres intention on 5432.
+#   The mesh showcase then lives on the gateway -> gotak-server intention instead.
+#   (The pristine alternative — keep postgres fully meshed and broker it through an
+#   in-cluster Boundary egress worker, multi-hop — is described in README.md.)
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: consul-ui
+  namespace: gotak
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: consul-ui
+spec:
+  to:
+    kind: Service
+    name: consul-ui
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-nodeport
+  namespace: gotak
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: database
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: database
+  ports:
+    - port: 5432
+      targetPort: 5432
+      nodePort: 30432
+      name: postgres

@@ -1,0 +1,37 @@
+---
+# Vault (Helm) — chart only. Init / KMS-unseal / CORS / gotak-token stay as
+# one-time imperative steps (vault-post-config.sh); GitOps just keeps the
+# Deployment/StatefulSet declarative. Prereqs: the KMS key+alias
+# (alias/gotak-vault-unseal) and the vault-aws-creds Secret must exist.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: vault
+  namespace: openshift-gitops
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: vault
+      targetRevision: 0.33.0
+      helm:
+        valueFiles:
+          - $values/openshift/platform/vault-values.yaml
+    - repoURL: https://github.com/osage-io/gotak.git
+      targetRevision: openshift-platform-vault-consul
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gotak
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 10
+      backoff: { duration: 15s, maxDuration: 5m, factor: 2 }

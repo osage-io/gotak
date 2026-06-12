@@ -1,0 +1,19 @@
+---
+boundary_version: "0.18.0"
+boundary_arch: "arm64"          # Graviton node
+
+# Worker proxy address your client connects to. Leave empty to auto-detect the
+# node's public IP via IMDS; set to boundary.demoland.io once that A record exists.
+boundary_public_addr: "boundary.demoland.io"
+
+boundary_login_name: "gotak"
+
+# Privileged-access targets brokered through the node worker. Fill in the route
+# hosts and the Postgres NodePort host (the SNO node IP) for your cluster.
+# See boundary/cluster-exposure.yaml for the consul-ui Route + postgres NodePort.
+boundary_targets:
+  - { name: openshift-api, address: "api.gotak.daniel-fedick.aws.sbx.hashicorpdemo.com", port: 6443 }
+  - { name: vault-ui,      address: "vault.demoland.io",   port: 443 }
+  - { name: consul-ui,     address: "consul.demoland.io",  port: 443 }
+  - { name: node-ssh,      address: "127.0.0.1",           port: 22 }
+  - { name: postgres,      address: "REPLACE_WITH_SNO_NODE_IP", port: 30432 }

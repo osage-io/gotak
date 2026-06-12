@@ -1,0 +1,138 @@
+---
+# GoTAK server config. The server reads config/server.yaml, so we mount it from
+# this ConfigMap. database.host points at the in-cluster postgres Service.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gotak-server-config
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+data:
+  server.yaml: |
+    server:
+      name: "GoTAK Server"
+      host: "0.0.0.0"
+      port: 8089
+      tcp_port: 8087
+      udp_port: 8087
+      tls_port: 8089
+      web_port: 8080
+      web_enabled: true
+      max_connections: 1000
+    database:
+      host: "postgres"
+      port: 5432
+      database: "gotak"
+      username: "gotak"
+      password: "tactical_secure_pass"
+      ssl_mode: "disable"
+      max_open_conns: 25
+      max_idle_conns: 5
+    security:
+      tls_enabled: false
+      jwt_secret: "demo-change-me"
+      jwt_expiration: 24h
+    logging:
+      level: "info"
+      format: "json"
+      output: "stdout"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotak-server
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gotak
+      app.kubernetes.io/component: server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gotak
+        app.kubernetes.io/component: server
+      annotations:
+        # Fully in the mesh — north-south enters via the Consul API Gateway, so
+        # no Route and no inbound exclusions. Reachable only via gateway ->
+        # gotak-server; outbound to postgres is governed by an intention.
+        consul.hashicorp.com/connect-inject: "true"
+    spec:
+      # Pull secret for the private ghcr.io image (created by the
+      # iac/gotak-registry-secret Terraform workspace).
+      imagePullSecrets:
+        - name: ghcr
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gotak-server
+          # Build + push from the repo Dockerfile, then set this to your registry path.
+          image: gotak-server:latest
+          imagePullPolicy: IfNotPresent
+          args: ["-config", "/config/server.yaml"]
+          ports:
+            - containerPort: 8080
+              name: http-api
+            - containerPort: 8087
+              name: ws-tak
+            - containerPort: 8089
+              name: tls-tak
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: gotak-server-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotak-server
+  labels:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+spec:
+  selector:
+    app.kubernetes.io/name: gotak
+    app.kubernetes.io/component: server
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http-api
+    - port: 8087
+      targetPort: 8087
+      name: ws-tak
+    - port: 8089
+      targetPort: 8089
+      name: tls-tak

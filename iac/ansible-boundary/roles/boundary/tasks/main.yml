@@ -1,0 +1,12 @@
+---
+- import_tasks: install.yml
+  tags: [install]
+
+- name: Wait for the Boundary API to be up
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: 9200
+    timeout: 60
+
+- import_tasks: targets.yml
+  tags: [targets]
