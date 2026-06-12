@@ -4,7 +4,6 @@ package rbac
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,28 +46,28 @@ type AccessControlManager interface {
 // Role represents a role in the RBAC system
 type Role struct {
 	ID          uuid.UUID   `json:"id" db:"id"`
-	Name        string      `json:"name" db:"name"`                               // e.g., "tactical:commander"
-	DisplayName string      `json:"display_name" db:"display_name"`               // e.g., "Tactical Commander"
-	Description string      `json:"description" db:"description"`                 // Human-readable description
-	Type        RoleType    `json:"type" db:"type"`                               // system, tactical, custom
-	ParentID    *uuid.UUID  `json:"parent_id,omitempty" db:"parent_id"`           // For role hierarchy
-	Permissions []uuid.UUID `json:"permissions" db:"permissions"`                 // Associated permission IDs
-	Metadata    Metadata    `json:"metadata" db:"metadata"`                       // Additional role data
-	IsActive    bool        `json:"is_active" db:"is_active"`                     // Whether role is active
+	Name        string      `json:"name" db:"name"`                     // e.g., "tactical:commander"
+	DisplayName string      `json:"display_name" db:"display_name"`     // e.g., "Tactical Commander"
+	Description string      `json:"description" db:"description"`       // Human-readable description
+	Type        RoleType    `json:"type" db:"type"`                     // system, tactical, custom
+	ParentID    *uuid.UUID  `json:"parent_id,omitempty" db:"parent_id"` // For role hierarchy
+	Permissions []uuid.UUID `json:"permissions" db:"permissions"`       // Associated permission IDs
+	Metadata    Metadata    `json:"metadata" db:"metadata"`             // Additional role data
+	IsActive    bool        `json:"is_active" db:"is_active"`           // Whether role is active
 	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
-	CreatedBy   uuid.UUID   `json:"created_by" db:"created_by"`                   // User who created the role
+	CreatedBy   uuid.UUID   `json:"created_by" db:"created_by"` // User who created the role
 }
 
 // Permission represents a specific permission in the system
 type Permission struct {
 	ID          uuid.UUID      `json:"id" db:"id"`
-	Name        string         `json:"name" db:"name"`                     // e.g., "missions:read"
-	DisplayName string         `json:"display_name" db:"display_name"`     // e.g., "Read Missions"
-	Description string         `json:"description" db:"description"`       // Human-readable description
-	Resource    string         `json:"resource" db:"resource"`             // Resource type (missions, users, etc.)
-	Action      string         `json:"action" db:"action"`                 // Action (read, write, delete, etc.)
-	Effect      PermissionType `json:"effect" db:"effect"`                 // allow, deny
+	Name        string         `json:"name" db:"name"`                       // e.g., "missions:read"
+	DisplayName string         `json:"display_name" db:"display_name"`       // e.g., "Read Missions"
+	Description string         `json:"description" db:"description"`         // Human-readable description
+	Resource    string         `json:"resource" db:"resource"`               // Resource type (missions, users, etc.)
+	Action      string         `json:"action" db:"action"`                   // Action (read, write, delete, etc.)
+	Effect      PermissionType `json:"effect" db:"effect"`                   // allow, deny
 	Conditions  []Condition    `json:"conditions,omitempty" db:"conditions"` // Optional conditions
 	Metadata    Metadata       `json:"metadata" db:"metadata"`
 	IsActive    bool           `json:"is_active" db:"is_active"`
@@ -79,30 +78,30 @@ type Permission struct {
 
 // RoleBinding represents the assignment of a role to a user
 type RoleBinding struct {
-	ID         uuid.UUID `json:"id" db:"id"`
-	UserID     uuid.UUID `json:"user_id" db:"user_id"`
-	RoleID     uuid.UUID `json:"role_id" db:"role_id"`
-	Role       *Role     `json:"role,omitempty"`                         // Populated in queries
-	GrantedBy  uuid.UUID `json:"granted_by" db:"granted_by"`             // User who granted the role
-	Metadata   Metadata  `json:"metadata" db:"metadata"`                 // Additional binding data
-	ExpiresAt  *time.Time `json:"expires_at,omitempty" db:"expires_at"`  // Optional expiration
-	IsActive   bool      `json:"is_active" db:"is_active"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+	ID        uuid.UUID  `json:"id" db:"id"`
+	UserID    uuid.UUID  `json:"user_id" db:"user_id"`
+	RoleID    uuid.UUID  `json:"role_id" db:"role_id"`
+	Role      *Role      `json:"role,omitempty"`                       // Populated in queries
+	GrantedBy uuid.UUID  `json:"granted_by" db:"granted_by"`           // User who granted the role
+	Metadata  Metadata   `json:"metadata" db:"metadata"`               // Additional binding data
+	ExpiresAt *time.Time `json:"expires_at,omitempty" db:"expires_at"` // Optional expiration
+	IsActive  bool       `json:"is_active" db:"is_active"`
+	CreatedAt time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // Policy represents an ABAC policy for attribute-based access control
 type Policy struct {
 	ID          uuid.UUID    `json:"id" db:"id"`
-	Name        string       `json:"name" db:"name"`                     // e.g., "time_restricted_access"
-	DisplayName string       `json:"display_name" db:"display_name"`     // e.g., "Time-Restricted Access"
+	Name        string       `json:"name" db:"name"`                 // e.g., "time_restricted_access"
+	DisplayName string       `json:"display_name" db:"display_name"` // e.g., "Time-Restricted Access"
 	Description string       `json:"description" db:"description"`
-	Type        PolicyType   `json:"type" db:"type"`                     // rbac, abac, hybrid
-	Rules       []PolicyRule `json:"rules" db:"rules"`                   // Policy rules
-	Effect      EffectType   `json:"effect" db:"effect"`                 // allow, deny
-	Priority    int          `json:"priority" db:"priority"`             // Higher number = higher priority
+	Type        PolicyType   `json:"type" db:"type"`         // rbac, abac, hybrid
+	Rules       []PolicyRule `json:"rules" db:"rules"`       // Policy rules
+	Effect      EffectType   `json:"effect" db:"effect"`     // allow, deny
+	Priority    int          `json:"priority" db:"priority"` // Higher number = higher priority
 	IsActive    bool         `json:"is_active" db:"is_active"`
-	Version     int          `json:"version" db:"version"`               // For policy versioning
+	Version     int          `json:"version" db:"version"` // For policy versioning
 	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`
 	CreatedBy   uuid.UUID    `json:"created_by" db:"created_by"`
@@ -110,70 +109,70 @@ type Policy struct {
 
 // PolicyRule represents a single rule within a policy
 type PolicyRule struct {
-	ID          string                 `json:"id"`                                    // Unique rule ID within policy
-	Name        string                 `json:"name"`                                  // Human-readable name
-	Condition   string                 `json:"condition"`                             // JSON Logic expression
-	Effect      EffectType             `json:"effect"`                                // allow, deny
-	Attributes  map[string]interface{} `json:"attributes,omitempty"`                  // Required attributes
-	Resources   []string               `json:"resources,omitempty"`                   // Applicable resources
-	Actions     []string               `json:"actions,omitempty"`                     // Applicable actions
-	Context     map[string]interface{} `json:"context,omitempty"`                     // Contextual constraints
+	ID         string                 `json:"id"`                   // Unique rule ID within policy
+	Name       string                 `json:"name"`                 // Human-readable name
+	Condition  string                 `json:"condition"`            // JSON Logic expression
+	Effect     EffectType             `json:"effect"`               // allow, deny
+	Attributes map[string]interface{} `json:"attributes,omitempty"` // Required attributes
+	Resources  []string               `json:"resources,omitempty"`  // Applicable resources
+	Actions    []string               `json:"actions,omitempty"`    // Applicable actions
+	Context    map[string]interface{} `json:"context,omitempty"`    // Contextual constraints
 }
 
 // Condition represents a conditional constraint on a permission or policy
 type Condition struct {
-	Type      ConditionType          `json:"type"`      // time, location, network, attribute, etc.
-	Field     string                 `json:"field"`     // Field to evaluate
-	Operator  string                 `json:"operator"`  // eq, ne, gt, lt, contains, etc.
-	Value     interface{}            `json:"value"`     // Expected value
-	Context   map[string]interface{} `json:"context,omitempty"` // Additional context
+	Type     ConditionType          `json:"type"`              // time, location, network, attribute, etc.
+	Field    string                 `json:"field"`             // Field to evaluate
+	Operator string                 `json:"operator"`          // eq, ne, gt, lt, contains, etc.
+	Value    interface{}            `json:"value"`             // Expected value
+	Context  map[string]interface{} `json:"context,omitempty"` // Additional context
 }
 
 // AuthorizationRequest represents a request for authorization
 type AuthorizationRequest struct {
-	UserID     uuid.UUID              `json:"user_id"`                        // User making the request
-	Resource   string                 `json:"resource"`                       // Resource being accessed
-	Action     string                 `json:"action"`                         // Action being performed
-	Context    map[string]interface{} `json:"context,omitempty"`              // Request context
-	Attributes map[string]interface{} `json:"attributes,omitempty"`           // User/session attributes
-	IPAddress  string                 `json:"ip_address,omitempty"`           // Client IP address
-	UserAgent  string                 `json:"user_agent,omitempty"`           // Client user agent
-	Timestamp  time.Time              `json:"timestamp"`                      // Request timestamp
+	UserID     uuid.UUID              `json:"user_id"`              // User making the request
+	Resource   string                 `json:"resource"`             // Resource being accessed
+	Action     string                 `json:"action"`               // Action being performed
+	Context    map[string]interface{} `json:"context,omitempty"`    // Request context
+	Attributes map[string]interface{} `json:"attributes,omitempty"` // User/session attributes
+	IPAddress  string                 `json:"ip_address,omitempty"` // Client IP address
+	UserAgent  string                 `json:"user_agent,omitempty"` // Client user agent
+	Timestamp  time.Time              `json:"timestamp"`            // Request timestamp
 }
 
 // AuthorizationDecision represents the result of an authorization check
 type AuthorizationDecision struct {
-	RequestID    string        `json:"request_id"`                        // Unique request identifier
-	UserID       uuid.UUID     `json:"user_id"`
-	Resource     string        `json:"resource"`
-	Action       string        `json:"action"`
-	Decision     DecisionType  `json:"decision"`                          // allow, deny, indeterminate
-	Reason       string        `json:"reason"`                            // Human-readable reason
-	AppliedRoles []uuid.UUID   `json:"applied_roles,omitempty"`           // Roles that influenced decision
-	AppliedPolicies []uuid.UUID `json:"applied_policies,omitempty"`       // Policies that influenced decision
-	Evidence     []Evidence    `json:"evidence,omitempty"`                // Supporting evidence
-	TTL          time.Duration `json:"ttl,omitempty"`                     // Cache TTL for decision
-	Metadata     Metadata      `json:"metadata,omitempty"`
-	Timestamp    time.Time     `json:"timestamp"`
+	RequestID       string        `json:"request_id"` // Unique request identifier
+	UserID          uuid.UUID     `json:"user_id"`
+	Resource        string        `json:"resource"`
+	Action          string        `json:"action"`
+	Decision        DecisionType  `json:"decision"`                   // allow, deny, indeterminate
+	Reason          string        `json:"reason"`                     // Human-readable reason
+	AppliedRoles    []uuid.UUID   `json:"applied_roles,omitempty"`    // Roles that influenced decision
+	AppliedPolicies []uuid.UUID   `json:"applied_policies,omitempty"` // Policies that influenced decision
+	Evidence        []Evidence    `json:"evidence,omitempty"`         // Supporting evidence
+	TTL             time.Duration `json:"ttl,omitempty"`              // Cache TTL for decision
+	Metadata        Metadata      `json:"metadata,omitempty"`
+	Timestamp       time.Time     `json:"timestamp"`
 }
 
 // PolicyDecision represents the result of a policy evaluation
 type PolicyDecision struct {
-	PolicyID    uuid.UUID              `json:"policy_id"`
-	Decision    DecisionType           `json:"decision"`              // allow, deny, indeterminate
-	Reason      string                 `json:"reason"`
-	MatchedRules []string              `json:"matched_rules,omitempty"` // Rule IDs that matched
-	Context     map[string]interface{} `json:"context,omitempty"`     // Evaluation context
-	Timestamp   time.Time              `json:"timestamp"`
+	PolicyID     uuid.UUID              `json:"policy_id"`
+	Decision     DecisionType           `json:"decision"` // allow, deny, indeterminate
+	Reason       string                 `json:"reason"`
+	MatchedRules []string               `json:"matched_rules,omitempty"` // Rule IDs that matched
+	Context      map[string]interface{} `json:"context,omitempty"`       // Evaluation context
+	Timestamp    time.Time              `json:"timestamp"`
 }
 
 // Evidence represents supporting evidence for an authorization decision
 type Evidence struct {
-	Type        EvidenceType           `json:"type"`        // role, permission, policy, condition
-	Source      string                 `json:"source"`      // Source identifier
-	Value       interface{}            `json:"value"`       // Evidence value
-	Context     map[string]interface{} `json:"context,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
+	Type      EvidenceType           `json:"type"`   // role, permission, policy, condition
+	Source    string                 `json:"source"` // Source identifier
+	Value     interface{}            `json:"value"`  // Evidence value
+	Context   map[string]interface{} `json:"context,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
 }
 
 // Metadata represents flexible key-value metadata
@@ -295,40 +294,40 @@ type PolicyRepository interface {
 
 // RoleFilters defines filters for role queries
 type RoleFilters struct {
-	Type      *RoleType `json:"type,omitempty"`
-	ParentID  *uuid.UUID `json:"parent_id,omitempty"`
-	IsActive  *bool     `json:"is_active,omitempty"`
-	Limit     int       `json:"limit,omitempty"`
-	Offset    int       `json:"offset,omitempty"`
+	Type     *RoleType  `json:"type,omitempty"`
+	ParentID *uuid.UUID `json:"parent_id,omitempty"`
+	IsActive *bool      `json:"is_active,omitempty"`
+	Limit    int        `json:"limit,omitempty"`
+	Offset   int        `json:"offset,omitempty"`
 }
 
 // PermissionFilters defines filters for permission queries
 type PermissionFilters struct {
-	Resource  string           `json:"resource,omitempty"`
-	Action    string           `json:"action,omitempty"`
-	Effect    *PermissionType  `json:"effect,omitempty"`
-	IsActive  *bool            `json:"is_active,omitempty"`
-	Limit     int              `json:"limit,omitempty"`
-	Offset    int              `json:"offset,omitempty"`
+	Resource string          `json:"resource,omitempty"`
+	Action   string          `json:"action,omitempty"`
+	Effect   *PermissionType `json:"effect,omitempty"`
+	IsActive *bool           `json:"is_active,omitempty"`
+	Limit    int             `json:"limit,omitempty"`
+	Offset   int             `json:"offset,omitempty"`
 }
 
 // PolicyFilters defines filters for policy queries
 type PolicyFilters struct {
-	Type      *PolicyType `json:"type,omitempty"`
-	IsActive  *bool       `json:"is_active,omitempty"`
-	Priority  *int        `json:"priority,omitempty"`
-	Limit     int         `json:"limit,omitempty"`
-	Offset    int         `json:"offset,omitempty"`
+	Type     *PolicyType `json:"type,omitempty"`
+	IsActive *bool       `json:"is_active,omitempty"`
+	Priority *int        `json:"priority,omitempty"`
+	Limit    int         `json:"limit,omitempty"`
+	Offset   int         `json:"offset,omitempty"`
 }
 
 // AttributeEvaluator handles ABAC attribute evaluation
 type AttributeEvaluator interface {
 	// Evaluate evaluates a JSON Logic expression against provided attributes
 	Evaluate(expression string, attributes map[string]interface{}) (bool, error)
-	
+
 	// ValidateExpression validates that a JSON Logic expression is valid
 	ValidateExpression(expression string) error
-	
+
 	// ExtractRequiredAttributes extracts the required attributes from an expression
 	ExtractRequiredAttributes(expression string) ([]string, error)
 }
@@ -396,19 +395,19 @@ func hasCycle(role *Role, allRoles []*Role, visited map[uuid.UUID]bool) bool {
 	if visited[role.ID] {
 		return true // Cycle detected
 	}
-	
+
 	if role.ParentID == nil {
 		return false // No parent, no cycle
 	}
-	
+
 	visited[role.ID] = true
-	
+
 	// Find parent role
 	for _, r := range allRoles {
 		if r.ID == *role.ParentID {
 			return hasCycle(r, allRoles, visited)
 		}
 	}
-	
+
 	return false // Parent not found, no cycle
 }

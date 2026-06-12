@@ -141,16 +141,16 @@ func (m *MockSQLRows) Err() error {
 // Mock rows for testing
 type MockRows struct {
 	mock.Mock
-	rowData [][]interface{}
+	rowData    [][]interface{}
 	currentRow int
-	closed bool
+	closed     bool
 }
 
 func NewMockRows() *MockRows {
 	return &MockRows{
-		rowData: make([][]interface{}, 0),
+		rowData:    make([][]interface{}, 0),
 		currentRow: -1,
-		closed: false,
+		closed:     false,
 	}
 }
 
@@ -169,7 +169,7 @@ func (m *MockRows) Scan(dest ...interface{}) error {
 	if m.currentRow >= len(m.rowData) {
 		return fmt.Errorf("no more rows")
 	}
-	
+
 	row := m.rowData[m.currentRow]
 	for i, val := range row {
 		if i < len(dest) {
@@ -201,12 +201,12 @@ func setupTestService(t *testing.T) (*Service, *MockDB, *events.MockPublisher, c
 	mockDB := &MockDB{}
 	logger := logger.NewDefault()
 	publisher := events.NewMockPublisher(*logger)
-	service := NewService(mockDB, *logger, publisher)
-	
+	service := NewService(mockDB, logger, publisher)
+
 	testUserID := uuid.New().String()
 	ctx := context.WithValue(context.Background(), "user_id", testUserID)
 	ctx = context.WithValue(ctx, "group_id", "test-group-456")
-	
+
 	return service, mockDB, publisher, ctx
 }
 
@@ -237,7 +237,7 @@ func timePtr(t time.Time) *time.Time {
 
 func TestService_CreateMission_Success(t *testing.T) {
 	service, mockDB, publisher, ctx := setupTestService(t)
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Test Mission",
 		Description:    "Test description",
@@ -246,22 +246,22 @@ func TestService_CreateMission_Success(t *testing.T) {
 		StartDate:      timePtr(time.Now()),
 		EndDate:        timePtr(time.Now().Add(24 * time.Hour)),
 	}
-	
+
 	// Mock transaction
 	mockTx := &MockTx{}
 	mockDB.On("BeginTx", mock.Anything, mock.Anything).Return(mockTx, nil)
 	// Mock the INSERT statement with all 18 parameters plus context and query = 20 total
-	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"), 
+	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"),
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 6 params: id, name, desc, status, priority, class
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 5 params: start, end, commander, created_by, group_id
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc 
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc
 		mock.Anything, mock.Anything, mock.Anything, // 3 params: metadata, created_at, updated_at
 	).Return(&MockResult{}, nil)
 	mockTx.On("Commit").Return(nil)
 	mockTx.On("Rollback").Return(nil)
-	
+
 	mission, err := service.CreateMission(ctx, req)
-	
+
 	require.NoError(t, err)
 	assert.Equal(t, req.Name, mission.Name)
 	assert.Equal(t, req.Description, mission.Description)
@@ -269,31 +269,31 @@ func TestService_CreateMission_Success(t *testing.T) {
 	assert.Equal(t, req.Classification, mission.Classification)
 	assert.Equal(t, StatusPlanning, mission.Status)
 	assert.Equal(t, "test-group-456", mission.GroupID)
-	
+
 	// Verify event was published
 	events := publisher.GetMissionEvents()
 	assert.Len(t, events, 1)
 	assert.Equal(t, "mission.created", events[0].Type)
-	
+
 	mockDB.AssertExpectations(t)
 	mockTx.AssertExpectations(t)
 }
 
 func TestService_CreateMission_InvalidDates(t *testing.T) {
 	service, _, _, ctx := setupTestService(t)
-	
+
 	startDate := time.Now()
 	endDate := startDate.Add(-1 * time.Hour) // End before start
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Test Mission",
 		Classification: ClassificationRestricted,
 		StartDate:      &startDate,
 		EndDate:        &endDate,
 	}
-	
+
 	mission, err := service.CreateMission(ctx, req)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, mission)
 	assert.Contains(t, err.Error(), "end date must be after start date")
@@ -301,16 +301,16 @@ func TestService_CreateMission_InvalidDates(t *testing.T) {
 
 func TestService_CreateMission_MissingUserContext(t *testing.T) {
 	service, _, _, _ := setupTestService(t)
-	
+
 	ctx := context.Background() // No user context
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Test Mission",
 		Classification: ClassificationRestricted,
 	}
-	
+
 	mission, err := service.CreateMission(ctx, req)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, mission)
 	assert.Contains(t, err.Error(), "user ID not found in context")
@@ -318,9 +318,9 @@ func TestService_CreateMission_MissingUserContext(t *testing.T) {
 
 func TestService_GetMission_FailsOnObjectivesLoad(t *testing.T) {
 	service, mockDB, _, ctx := setupTestService(t)
-	
+
 	testMission := createTestMission()
-	
+
 	// Mock database calls for mission
 	mockRow := &MockRow{}
 	mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), testMission.ID).Return(mockRow)
@@ -333,69 +333,69 @@ func TestService_GetMission_FailsOnObjectivesLoad(t *testing.T) {
 		*dest[3].(*MissionStatus) = testMission.Status
 		*dest[4].(*int) = testMission.Priority
 		*dest[5].(*Classification) = testMission.Classification
-		
+
 		// Set pointers for StartDate and EndDate
 		*dest[6].(**time.Time) = testMission.StartDate
 		*dest[7].(**time.Time) = testMission.EndDate
 		*dest[8].(**uuid.UUID) = testMission.CommanderID
 		*dest[9].(*uuid.UUID) = testMission.CreatedBy
 		*dest[10].(*string) = testMission.GroupID
-		
+
 		// Set location pointers (latitude, longitude, locationName, locationDescription)
 		*dest[11].(**float64) = nil
 		*dest[12].(**float64) = nil
 		*dest[13].(**string) = nil
 		*dest[14].(**string) = nil
-		
+
 		// Set metadata JSON and timestamps
 		*dest[15].(*[]byte) = []byte("{}")
 		*dest[16].(*time.Time) = testMission.CreatedAt
 		*dest[17].(*time.Time) = testMission.UpdatedAt
 	})
-	
+
 	// Mock objectives query - return database error
 	mockDB.On("QueryContext", mock.Anything, mock.AnythingOfType("string"), testMission.ID).Return(nil, sql.ErrConnDone).Once()
-	
+
 	mission, err := service.GetMission(ctx, testMission.ID)
-	
+
 	// The test should fail because objectives query will fail
 	assert.Error(t, err)
 	assert.Nil(t, mission)
 	assert.Contains(t, err.Error(), "failed to load mission objectives")
-	
+
 	mockDB.AssertExpectations(t)
 }
 
 func TestService_GetMission_NotFound(t *testing.T) {
 	service, mockDB, _, ctx := setupTestService(t)
-	
+
 	testID := uuid.New()
-	
+
 	// Mock mission not found
 	mockRow := &MockRow{}
 	mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), testID).Return(mockRow)
 	mockRow.On("Scan", mock.Anything).Return(sql.ErrNoRows)
-	
+
 	mission, err := service.GetMission(ctx, testID)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, mission)
 	assert.Contains(t, err.Error(), "mission not found")
-	
+
 	mockDB.AssertExpectations(t)
 }
 
 func TestService_UpdateMissionStatus_Success(t *testing.T) {
 	service, mockDB, publisher, ctx := setupTestService(t)
-	
+
 	testMission := createTestMission()
 	newStatus := StatusApproved
 	reason := "Ready for execution"
-	
+
 	// Mock getting current mission
 	mockRow := &MockRow{}
-mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), testMission.ID).Return(mockRow)
-mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), testMission.ID).Return(mockRow)
+	mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		dest := args[0].([]interface{})
 		*dest[0].(*uuid.UUID) = testMission.ID
 		*dest[1].(*string) = testMission.Name
@@ -416,7 +416,7 @@ mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		*dest[16].(*time.Time) = testMission.CreatedAt
 		*dest[17].(*time.Time) = testMission.UpdatedAt
 	})
-	
+
 	// Mock transaction
 	mockTx := &MockTx{}
 	mockDB.On("BeginTx", mock.Anything, mock.Anything).Return(mockTx, nil)
@@ -426,30 +426,30 @@ mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(&MockResult{}, nil).Once()
 	mockTx.On("Commit").Return(nil)
 	mockTx.On("Rollback").Return(nil)
-	
+
 	err := service.UpdateMissionStatus(ctx, testMission.ID, newStatus, reason)
-	
+
 	require.NoError(t, err)
-	
+
 	// Verify event was published
 	events := publisher.GetMissionEvents()
 	assert.Len(t, events, 1)
 	assert.Equal(t, "mission.status_changed", events[0].Type)
-	
+
 	mockDB.AssertExpectations(t)
 	mockTx.AssertExpectations(t)
 }
 
 func TestService_UpdateMissionStatus_InvalidTransition(t *testing.T) {
 	service, mockDB, _, ctx := setupTestService(t)
-	
+
 	testMission := createTestMission()
 	testMission.Status = StatusCompleted // Already completed
-	
+
 	// Mock getting current mission
 	mockRow := &MockRow{}
-mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), testMission.ID).Return(mockRow)
-mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+	mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), testMission.ID).Return(mockRow)
+	mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		dest := args[0].([]interface{})
 		*dest[0].(*uuid.UUID) = testMission.ID
 		*dest[1].(*string) = testMission.Name
@@ -470,42 +470,42 @@ mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		*dest[16].(*time.Time) = testMission.CreatedAt
 		*dest[17].(*time.Time) = testMission.UpdatedAt
 	})
-	
+
 	err := service.UpdateMissionStatus(ctx, testMission.ID, StatusPlanning, "Invalid transition")
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid status transition")
-	
+
 	mockDB.AssertExpectations(t)
 }
 
 func TestService_ListMissions_Success(t *testing.T) {
 	service, mockDB, _, ctx := setupTestService(t)
-	
+
 	filter := &ListMissionsFilter{
 		Limit:  10,
 		Offset: 0,
 	}
-	
+
 	// Mock count query
 	mockRow := &MockRow{}
-mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), "test-group-456").Return(mockRow)
+	mockDB.On("QueryRowContext", mock.Anything, mock.AnythingOfType("string"), "test-group-456").Return(mockRow)
 	mockRow.On("Scan", mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 		dest := args[0].([]interface{})
 		*dest[0].(*int) = 5 // Total count
 	})
-	
+
 	// Mock list query - return error to simplify test (5 params: context, query, groupID, limit, offset)
 	mockDB.On("QueryContext", mock.Anything, mock.AnythingOfType("string"), mock.Anything, mock.Anything, mock.Anything).Return(nil, sql.ErrNoRows)
-	
+
 	missions, total, err := service.ListMissions(ctx, filter)
-	
+
 	// Should fail due to query error
 	assert.Error(t, err)
 	assert.Equal(t, 0, total)
 	assert.Nil(t, missions)
 	assert.Contains(t, err.Error(), "failed to query missions")
-	
+
 	mockDB.AssertExpectations(t)
 }
 
@@ -522,11 +522,11 @@ func TestIsValidMissionStatusTransition(t *testing.T) {
 		{"planning to cancelled", StatusPlanning, StatusCancelled, true},
 		{"approved to active", StatusApproved, StatusActive, true},
 		{"active to completed", StatusActive, StatusCompleted, true},
-		{"completed to active", StatusCompleted, StatusActive, false}, // Terminal state
-		{"cancelled to active", StatusCancelled, StatusActive, false}, // Terminal state
+		{"completed to active", StatusCompleted, StatusActive, false},     // Terminal state
+		{"cancelled to active", StatusCancelled, StatusActive, false},     // Terminal state
 		{"planning to completed", StatusPlanning, StatusCompleted, false}, // Invalid skip
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := isValidMissionStatusTransition(tt.from, tt.to)
@@ -550,7 +550,7 @@ func TestMissionStatus_Valid(t *testing.T) {
 		{StatusCancelled, true},
 		{MissionStatus("invalid"), false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(string(tt.status), func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.status.Valid())
@@ -570,7 +570,7 @@ func TestClassification_Valid(t *testing.T) {
 		{ClassificationTopSecret, true},
 		{Classification("invalid"), false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(string(tt.classification), func(t *testing.T) {
 			assert.Equal(t, tt.expected, tt.classification.Valid())
@@ -602,7 +602,7 @@ func TestGetUserIDFromContext(t *testing.T) {
 			expected: "",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := getUserIDFromContext(tt.ctx)
@@ -628,7 +628,7 @@ func TestGetGroupIDFromContext(t *testing.T) {
 			expected: "",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := getGroupIDFromContext(tt.ctx)
@@ -642,36 +642,36 @@ func TestGetGroupIDFromContext(t *testing.T) {
 func TestService_EventPublishing_Disabled(t *testing.T) {
 	mockDB := &MockDB{}
 	logger := logger.NewDefault()
-	service := NewService(mockDB, *logger, nil) // No publisher
-	
+	service := NewService(mockDB, logger, nil) // No publisher
+
 	testUserID := uuid.New().String()
 	ctx := context.WithValue(context.Background(), "user_id", testUserID)
 	ctx = context.WithValue(ctx, "group_id", "test-group-456")
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Test Mission",
 		Classification: ClassificationRestricted,
 	}
-	
+
 	// Mock transaction
 	mockTx := &MockTx{}
 	mockDB.On("BeginTx", mock.Anything, mock.Anything).Return(mockTx, nil)
 	// Mock the INSERT statement with all 18 parameters plus context and query = 20 total
-	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"), 
+	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"),
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 6 params: id, name, desc, status, priority, class
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 5 params: start, end, commander, created_by, group_id
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc 
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc
 		mock.Anything, mock.Anything, mock.Anything, // 3 params: metadata, created_at, updated_at
 	).Return(&MockResult{}, nil)
 	mockTx.On("Commit").Return(nil)
 	mockTx.On("Rollback").Return(nil)
-	
+
 	mission, err := service.CreateMission(ctx, req)
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, mission)
 	// No events should be published when publisher is nil
-	
+
 	mockDB.AssertExpectations(t)
 	mockTx.AssertExpectations(t)
 }
@@ -680,51 +680,51 @@ func TestService_EventPublishing_Disabled(t *testing.T) {
 
 func TestService_CreateMission_TransactionFailure(t *testing.T) {
 	service, mockDB, _, ctx := setupTestService(t)
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Test Mission",
 		Classification: ClassificationRestricted,
 	}
-	
+
 	// Mock transaction failure
 	mockDB.On("BeginTx", mock.Anything, mock.Anything).Return(nil, assert.AnError)
-	
+
 	mission, err := service.CreateMission(ctx, req)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, mission)
 	assert.Contains(t, err.Error(), "failed to start transaction")
-	
+
 	mockDB.AssertExpectations(t)
 }
 
 func TestService_CreateMission_CommitFailure(t *testing.T) {
 	service, mockDB, _, ctx := setupTestService(t)
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Test Mission",
 		Classification: ClassificationRestricted,
 	}
-	
+
 	// Mock transaction with commit failure
 	mockTx := &MockTx{}
 	mockDB.On("BeginTx", mock.Anything, mock.Anything).Return(mockTx, nil)
 	// Mock the INSERT statement with all 18 parameters plus context and query = 20 total
-	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"), 
+	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"),
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 6 params: id, name, desc, status, priority, class
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 5 params: start, end, commander, created_by, group_id
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc 
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc
 		mock.Anything, mock.Anything, mock.Anything, // 3 params: metadata, created_at, updated_at
 	).Return(&MockResult{}, nil)
 	mockTx.On("Commit").Return(assert.AnError)
 	mockTx.On("Rollback").Return(nil)
-	
+
 	mission, err := service.CreateMission(ctx, req)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, mission)
 	assert.Contains(t, err.Error(), "failed to commit transaction")
-	
+
 	mockDB.AssertExpectations(t)
 	mockTx.AssertExpectations(t)
 }
@@ -733,25 +733,25 @@ func TestService_CreateMission_CommitFailure(t *testing.T) {
 
 func BenchmarkService_CreateMission(b *testing.B) {
 	service, mockDB, _, ctx := setupTestService(&testing.T{})
-	
+
 	req := &CreateMissionRequest{
 		Name:           "Benchmark Mission",
 		Classification: ClassificationRestricted,
 	}
-	
+
 	// Setup mocks for benchmark
 	mockTx := &MockTx{}
 	mockDB.On("BeginTx", mock.Anything, mock.Anything).Return(mockTx, nil)
 	// Mock the INSERT statement with all 18 parameters plus context and query = 20 total
-	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"), 
+	mockTx.On("ExecContext", mock.Anything, mock.AnythingOfType("string"),
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 6 params: id, name, desc, status, priority, class
 		mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 5 params: start, end, commander, created_by, group_id
-		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc 
+		mock.Anything, mock.Anything, mock.Anything, mock.Anything, // 4 params: lat, lng, loc_name, loc_desc
 		mock.Anything, mock.Anything, mock.Anything, // 3 params: metadata, created_at, updated_at
 	).Return(&MockResult{}, nil)
 	mockTx.On("Commit").Return(nil)
 	mockTx.On("Rollback").Return(nil)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		service.CreateMission(ctx, req)
