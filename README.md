@@ -85,7 +85,7 @@ gotak/
 ├── deployments/            # Deployment configurations
 │   ├── docker/             # Docker configurations
 │   └── k8s/                # Kubernetes manifests
-├── hashistack/             # Local single-node Consul + Vault + Nomad dev runtime
+├── hashistack-local/       # Local single-node Consul + Vault + Nomad dev runtime
 ├── nomad/                  # Nomad job specs (standalone + Consul Connect)
 │   └── deployments/
 │       ├── standalone/     # Self-contained jobs (no service mesh)
@@ -265,7 +265,7 @@ make nomad-stop
 make hashi-down
 ```
 
-See [hashistack/README.md](hashistack/README.md) for endpoints, tokens, and CLI environment variables.
+See [hashistack-local/README.md](hashistack-local/README.md) for endpoints, tokens, and CLI environment variables.
 
 ### Adding Features
 
@@ -340,7 +340,7 @@ make hashi-status    # check health
 
 The local Nomad UI is at `http://127.0.0.1:4646`, Consul at
 `http://127.0.0.1:8500`, and Vault at `http://127.0.0.1:8200`. See
-[hashistack/README.md](hashistack/README.md) for full details.
+[hashistack-local/README.md](hashistack-local/README.md) for full details.
 
 ### Secrets with Vault
 
@@ -349,7 +349,7 @@ For the local stack, configure the transit key (re-run after any dev-Vault
 restart, since dev mode is in-memory):
 
 ```bash
-./hashistack/vault-setup.sh
+./hashistack-local/vault-setup.sh
 ```
 
 ### Secure Access with Boundary (optional)
@@ -358,7 +358,7 @@ For brokered access to the infrastructure endpoints (Consul, Nomad, Vault) via
 HashiCorp Boundary, a demo setup script is provided:
 
 ```bash
-./hashistack/boundary-setup.sh
+./hashistack-local/boundary-setup.sh
 ```
 
 ### Systemd Service

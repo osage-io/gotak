@@ -69,7 +69,7 @@ gotak/
 ├── config/                # YAML configuration files
 ├── migrations/            # SQL migrations (consolidation needed)
 ├── nomad/                 # Nomad job specifications
-├── hashistack/            # Local dev HashiStack (Consul/Vault/Nomad)
+├── hashistack-local/      # Local dev HashiStack (Consul/Vault/Nomad)
 ├── scripts/               # Build & deployment scripts
 ├── tests/                 # Integration & E2E tests
 └── docs/                  # Documentation
