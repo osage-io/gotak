@@ -16,6 +16,12 @@ variable "cluster_name" {
   default     = "gotak-demo"
 }
 
+variable "vpc_name_suffix" {
+  description = "Suffix appended to cluster_name for VPC naming."
+  type        = string
+  default     = "vpc"
+}
+
 variable "vpc_cidr" {
   description = "CIDR block for the VPC."
   type        = string

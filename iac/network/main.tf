@@ -14,7 +14,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true # required by ROSA
 
   tags = merge(var.tags, {
-    Name = "${local.name}-vpc"
+    Name = "${local.name}-${var.vpc_name_suffix}"
   })
 }
 
