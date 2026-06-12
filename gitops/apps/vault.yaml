@@ -20,7 +20,7 @@ spec:
         valueFiles:
           - $values/openshift/platform/vault-values.yaml
     - repoURL: https://github.com/osage-io/gotak.git
-      targetRevision: openshift-platform-vault-consul
+      targetRevision: main
       ref: values
   destination:
     server: https://kubernetes.default.svc

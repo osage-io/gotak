@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/osage-io/gotak.git
-    targetRevision: openshift-platform-vault-consul   # switch to main after merge
+    targetRevision: main
     path: gitops/apps
   destination:
     server: https://kubernetes.default.svc

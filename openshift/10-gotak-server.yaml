@@ -73,8 +73,8 @@ spec:
       containers:
         - name: gotak-server
           # Build + push from the repo Dockerfile, then set this to your registry path.
-          image: gotak-server:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/osage-io/gotak-server:latest
+          imagePullPolicy: Always
           args: ["-config", "/config/server.yaml"]
           ports:
             - containerPort: 8080
