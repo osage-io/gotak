@@ -1,4 +1,14 @@
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: gotak-kafka, namespace: gotak }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: gotak-kafka-anyuid, namespace: gotak }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: system:openshift:scc:anyuid }
+subjects: [ { kind: ServiceAccount, name: gotak-kafka, namespace: gotak } ]
+---
 # Single-node Kafka (KRaft, no Zookeeper) for the Communications message bus.
 # Demo-grade: ephemeral storage (emptyDir), auto-create topics, no auth.
 # Out of the Consul mesh (annotation) — gotak-server reaches it via tproxy
@@ -20,6 +30,10 @@ spec:
       annotations:
         consul.hashicorp.com/connect-inject: "false"
     spec:
+      serviceAccountName: gotak-kafka
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: kafka
           image: docker.io/apache/kafka:3.9.0   # multi-arch (arm64)
