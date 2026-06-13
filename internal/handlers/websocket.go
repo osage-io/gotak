@@ -5,22 +5,51 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/gorilla/websocket"
-	"github.com/google/uuid"
 	"github.com/dfedick/gotak/internal/chat"
 	"github.com/dfedick/gotak/pkg/logger"
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
-// WebSocket upgrader with CORS support
+// WebSocket upgrader with CORS support.
+// Allowed origins come from GOTAK_WS_ALLOWED_ORIGINS (comma-separated); localhost
+// dev origins are always allowed, as is same-origin (Origin host == request Host)
+// and a missing Origin (non-browser clients). This lets the deployed UI
+// (e.g. https://gotak.demoland.io, fronted by the gateway) connect.
+var wsAllowedOrigins = func() map[string]bool {
+	m := map[string]bool{
+		"http://localhost:5173": true,
+		"http://localhost:3000": true,
+	}
+	for _, o := range strings.Split(os.Getenv("GOTAK_WS_ALLOWED_ORIGINS"), ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			m[o] = true
+		}
+	}
+	return m
+}()
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// Allow connections from localhost during development
 		origin := r.Header.Get("Origin")
-		return origin == "http://localhost:5173" || origin == "http://localhost:3000" || 
-			   r.Host == "localhost:8080" || r.Host == "localhost:8087"
+		if origin == "" { // non-browser client, no Origin header
+			return true
+		}
+		if wsAllowedOrigins[origin] {
+			return true
+		}
+		// Same-origin: the Origin's host matches the request Host (covers the
+		// gateway-fronted deployment without hardcoding the hostname).
+		if u, err := url.Parse(origin); err == nil && u.Host == r.Host {
+			return true
+		}
+		return false
 	},
 }
 
@@ -50,9 +79,9 @@ const (
 	MsgTypeUserOffline     = "user_offline"
 
 	// System messages
-	MsgTypeSystemAlert     = "system_alert"
-	MsgTypeHeartbeat       = "heartbeat"
-	MsgTypeError           = "error"
+	MsgTypeSystemAlert = "system_alert"
+	MsgTypeHeartbeat   = "heartbeat"
+	MsgTypeError       = "error"
 )
 
 // PositionUpdate represents a position update payload
@@ -83,9 +112,9 @@ type ChatRoomPayload struct {
 }
 
 type MessageReactionPayload struct {
-	MessageID    uuid.UUID         `json:"messageId"`
-	Reaction     *chat.MessageReaction `json:"reaction"`
-	Action       string            `json:"action"` // "added", "removed"
+	MessageID uuid.UUID             `json:"messageId"`
+	Reaction  *chat.MessageReaction `json:"reaction"`
+	Action    string                `json:"action"` // "added", "removed"
 }
 
 type UserTypingPayload struct {
@@ -112,15 +141,15 @@ type IncomingMessage struct {
 }
 
 type SendMessagePayload struct {
-	RoomID          uuid.UUID            `json:"roomId"`
-	MessageText     string               `json:"messageText"`
-	MessageType     *chat.MessageType    `json:"messageType,omitempty"`
-	Priority        *chat.MessagePriority `json:"priority,omitempty"`
-	Classification  *chat.Classification  `json:"classification,omitempty"`
-	LocationLat     *float64             `json:"locationLat,omitempty"`
-	LocationLng     *float64             `json:"locationLng,omitempty"`
-	ReplyToID       *uuid.UUID           `json:"replyToId,omitempty"`
-	RequiresAck     bool                 `json:"requiresAck"`
+	RoomID         uuid.UUID             `json:"roomId"`
+	MessageText    string                `json:"messageText"`
+	MessageType    *chat.MessageType     `json:"messageType,omitempty"`
+	Priority       *chat.MessagePriority `json:"priority,omitempty"`
+	Classification *chat.Classification  `json:"classification,omitempty"`
+	LocationLat    *float64              `json:"locationLat,omitempty"`
+	LocationLng    *float64              `json:"locationLng,omitempty"`
+	ReplyToID      *uuid.UUID            `json:"replyToId,omitempty"`
+	RequiresAck    bool                  `json:"requiresAck"`
 }
 
 type JoinRoomPayload struct {
@@ -128,7 +157,7 @@ type JoinRoomPayload struct {
 }
 
 type ReactToMessagePayload struct {
-	MessageID    uuid.UUID        `json:"messageId"`
+	MessageID    uuid.UUID         `json:"messageId"`
 	ReactionType chat.ReactionType `json:"reactionType"`
 }
 
@@ -138,16 +167,16 @@ type AcknowledgeMessagePayload struct {
 
 // TacticalWSClient represents a connected WebSocket client
 type TacticalWSClient struct {
-	conn      *websocket.Conn
-	send      chan TacticalWSMessage
-	hub       *TacticalWSHub
-	userID    *uuid.UUID
-	username  string
-	callsign  *string
-	rooms     map[uuid.UUID]bool // Rooms the client has joined
-	typingIn  *uuid.UUID         // Room ID where user is currently typing
-	lastSeen  time.Time
-	mu        sync.RWMutex
+	conn     *websocket.Conn
+	send     chan TacticalWSMessage
+	hub      *TacticalWSHub
+	userID   *uuid.UUID
+	username string
+	callsign *string
+	rooms    map[uuid.UUID]bool // Rooms the client has joined
+	typingIn *uuid.UUID         // Room ID where user is currently typing
+	lastSeen time.Time
+	mu       sync.RWMutex
 }
 
 // TacticalWSHub manages WebSocket connections and broadcasts
@@ -269,7 +298,7 @@ func (h *TacticalWSHub) BroadcastChatMessage(roomID uuid.UUID, message *chat.Cha
 		client.mu.RLock()
 		isInRoom := client.rooms[roomID]
 		client.mu.RUnlock()
-		
+
 		if isInRoom {
 			select {
 			case client.send <- wsMessage:
@@ -301,7 +330,7 @@ func (h *TacticalWSHub) BroadcastRoomUpdate(roomID uuid.UUID, room *chat.ChatRoo
 		client.mu.RLock()
 		isInRoom := client.rooms[roomID]
 		client.mu.RUnlock()
-		
+
 		if isInRoom {
 			select {
 			case client.send <- wsMessage:
@@ -359,7 +388,7 @@ func (h *TacticalWSHub) BroadcastTypingIndicator(roomID, userID uuid.UUID, usern
 		isInRoom := client.rooms[roomID]
 		isSender := client.userID != nil && *client.userID == userID
 		client.mu.RUnlock()
-		
+
 		if isInRoom && !isSender {
 			select {
 			case client.send <- wsMessage:
@@ -784,7 +813,7 @@ func (c *TacticalWSClient) sendMessage(msg TacticalWSMessage) {
 func (c *TacticalWSClient) getCallsign() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	if c.callsign != nil {
 		return *c.callsign
 	}
