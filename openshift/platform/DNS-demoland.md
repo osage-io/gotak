@@ -21,7 +21,6 @@ for round-robin, or just one.
 | A    | `vault`    | `18.217.224.91`             | Vault UI/API |
 | A    | `vault`    | `18.116.145.144`            | (optional) |
 | A    | `consul`   | `18.217.224.91`             | Consul UI |
-| A    | `redpanda` | `18.217.224.91`             | Kafka Console (topic viewer) |
 | A    | `consul`   | `18.116.145.144`            | (optional) |
 | A    | `sno`      | `16.58.42.236`              | kube-apiserver (`:6443`) — see API note below |
 | A    | `argo`     | `18.217.224.91`             | Argo CD console (`argo.demoland.io`, edge TLS) |
