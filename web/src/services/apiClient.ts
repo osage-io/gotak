@@ -1,3 +1,4 @@
+import { authHeaders } from './authToken';
 /**
  * GoTAK API Client Service
  * Provides HTTP client interface to the GoTAK backend server
@@ -116,6 +117,7 @@ export class GoTAKAPIClient {
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders(),
         ...options.headers,
       },
     };

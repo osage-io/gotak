@@ -1,3 +1,4 @@
+import { authHeaders } from './authToken';
 import type { 
   EntityPosition, 
   PositionHistory, 
@@ -14,7 +15,7 @@ export class PositionService {
 
   // Get all entity positions
   async getAllPositions(): Promise<EntityPosition[]> {
-    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.ALL_POSITIONS}`);
+    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.ALL_POSITIONS}`, { headers: authHeaders() });
     if (!response.ok) {
       throw new Error(`Failed to fetch positions: ${response.statusText}`);
     }
@@ -23,7 +24,7 @@ export class PositionService {
 
   // Get only active (non-stale) positions
   async getActivePositions(): Promise<EntityPosition[]> {
-    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.ACTIVE_POSITIONS}`);
+    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.ACTIVE_POSITIONS}`, { headers: authHeaders() });
     if (!response.ok) {
       throw new Error(`Failed to fetch active positions: ${response.statusText}`);
     }
@@ -32,7 +33,7 @@ export class PositionService {
 
   // Get friendly positions only
   async getFriendlyPositions(): Promise<EntityPosition[]> {
-    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.FRIENDLY_POSITIONS}`);
+    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.FRIENDLY_POSITIONS}`, { headers: authHeaders() });
     if (!response.ok) {
       throw new Error(`Failed to fetch friendly positions: ${response.statusText}`);
     }
@@ -41,7 +42,7 @@ export class PositionService {
 
   // Get hostile positions only
   async getHostilePositions(): Promise<EntityPosition[]> {
-    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.HOSTILE_POSITIONS}`);
+    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.HOSTILE_POSITIONS}`, { headers: authHeaders() });
     if (!response.ok) {
       throw new Error(`Failed to fetch hostile positions: ${response.statusText}`);
     }
@@ -62,7 +63,7 @@ export class PositionService {
       west: west.toString(),
     });
 
-    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.POSITIONS_IN_BOUNDS}?${params}`);
+    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.POSITIONS_IN_BOUNDS}?${params}`, { headers: authHeaders() });
     if (!response.ok) {
       throw new Error(`Failed to fetch positions in bounds: ${response.statusText}`);
     }
@@ -72,7 +73,7 @@ export class PositionService {
   // Get specific entity position
   async getPosition(entityId: string): Promise<EntityPosition> {
     const url = `${this.baseUrl}${POSITION_API_ENDPOINTS.POSITION_BY_ID.replace(':entityId', entityId)}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: authHeaders() });
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error(`Entity ${entityId} not found`);
@@ -85,7 +86,7 @@ export class PositionService {
   // Get entity position trail/history
   async getPositionTrail(entityId: string): Promise<PositionHistory[]> {
     const url = `${this.baseUrl}${POSITION_API_ENDPOINTS.POSITION_TRAIL.replace(':entityId', entityId)}`;
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: authHeaders() });
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error(`Entity ${entityId} not found`);
@@ -97,7 +98,7 @@ export class PositionService {
 
   // Get position statistics
   async getPositionStatistics(): Promise<PositionStatistics> {
-    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.POSITION_STATISTICS}`);
+    const response = await fetch(`${this.baseUrl}${POSITION_API_ENDPOINTS.POSITION_STATISTICS}`, { headers: authHeaders() });
     if (!response.ok) {
       throw new Error(`Failed to fetch position statistics: ${response.statusText}`);
     }

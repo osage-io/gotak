@@ -1,3 +1,4 @@
+import { authHeaders } from './authToken';
 // API service for GoTAK Web UI
 
 // Get configuration from runtime config
@@ -33,11 +34,12 @@ export class ApiClient {
     
     try {
       const response = await fetch(url, {
+        ...options,
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders(),
           ...options.headers,
         },
-        ...options,
       });
 
       if (!response.ok) {
