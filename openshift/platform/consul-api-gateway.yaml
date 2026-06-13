@@ -75,14 +75,15 @@ spec:
       backendRefs:
         - name: gotak-server
           port: 8080
-    # WebSocket / TAK stream -> gotak-server
+    # WebSocket / TAK stream -> gotak-server HTTP port (8080). /ws/tactical is
+    # served by the HTTP listener; 8087 is the raw TAK/CoT TCP port (wrong).
     - matches:
         - path:
             type: PathPrefix
             value: /ws
       backendRefs:
         - name: gotak-server
-          port: 8087
+          port: 8080
     # Everything else -> the web UI
     - matches:
         - path:
