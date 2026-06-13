@@ -73,11 +73,25 @@
       ansible.builtin.command: >
         boundary roles add-grant-scopes -recovery-config /etc/boundary/boundary.hcl
         -id {{ (role_out.stdout | from_json).item.id }} -grant-scope-id "this"
+      register: _r
+      changed_when: '"error" not in _r.stderr | lower or _r.rc == 0'
+      failed_when: >
+        _r.rc != 0 and
+        ("already" not in _r.stderr | lower) and
+        ("second resource" not in _r.stderr | lower) and
+        ("duplicate" not in _r.stderr | lower)
     - name: Add user to role
       ansible.builtin.command: >
         boundary roles add-principals -recovery-config /etc/boundary/boundary.hcl
         -id {{ (role_out.stdout | from_json).item.id }}
         -principal {{ (user_out.stdout | from_json).item.id }}
+      register: _r
+      changed_when: '"error" not in _r.stderr | lower or _r.rc == 0'
+      failed_when: >
+        _r.rc != 0 and
+        ("already" not in _r.stderr | lower) and
+        ("second resource" not in _r.stderr | lower) and
+        ("duplicate" not in _r.stderr | lower)
     - name: Grant target access
       ansible.builtin.command: >
         boundary roles add-grants -recovery-config /etc/boundary/boundary.hcl
@@ -90,6 +104,11 @@
         boundary targets create tcp -recovery-config /etc/boundary/boundary.hcl
         -scope-id {{ proj_id }} -name {{ item.name }} -address {{ item.address }}
         -default-port {{ item.port }} -session-connection-limit -1
+      register: _t
+      changed_when: '"error" not in _t.stderr | lower or _t.rc == 0'
+      failed_when: >
+        _t.rc != 0 and ("already" not in _t.stderr | lower)
+        and ("second resource" not in _t.stderr | lower)
       loop: "{{ boundary_targets }}"
       loop_control:
         label: "{{ item.name }} -> {{ item.address }}:{{ item.port }}"
