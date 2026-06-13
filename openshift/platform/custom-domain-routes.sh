@@ -41,9 +41,11 @@ mkroute consul-demoland consul-ui     http "consul.$DOMAIN"
 
 # Vault/Consul are admin surfaces: restrict to ALLOWLIST_IP (default dan's home
 # IP) until Boundary brokers access. The gotak app route stays public.
+# vault.demoland.io is intentionally public (browser-side transit/PKI/KV); only
+# consul is restricted (reach it via Boundary).
 ALLOWLIST_IP="${ALLOWLIST_IP:-143.105.191.161/32 3.148.232.34/32 10.0.0.0/16}"
-echo ">> Restricting vault/consul routes to $ALLOWLIST_IP"
-for r in vault-demoland consul-demoland; do
+echo ">> Restricting consul route to $ALLOWLIST_IP (vault stays public)"
+for r in consul-demoland; do
   oc -n "$NS" annotate route "$r" "haproxy.router.openshift.io/ip_whitelist=$ALLOWLIST_IP" --overwrite >/dev/null
 done
 
