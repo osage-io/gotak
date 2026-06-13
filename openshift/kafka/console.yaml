@@ -60,3 +60,18 @@ metadata:
 spec:
   selector: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
   ports: [ { port: 8080, targetPort: 8080, name: http } ]
+---
+# NodePort so the Boundary worker can L4-broker the console UI (the name-based
+# Route can't be brokered — browser local-proxy SNI is 127.0.0.1). The console's
+# inbound :8080 is already excluded from the mesh proxy, so this reaches it
+# directly. Not publicly exposed — access only via the Boundary redpanda target.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-console-nodeport
+  labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+spec:
+  type: NodePort
+  selector: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+  ports:
+    - { port: 8080, targetPort: 8080, nodePort: 30851, name: http }

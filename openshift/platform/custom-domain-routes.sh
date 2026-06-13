@@ -38,7 +38,6 @@ echo ">> Creating custom-host Routes (BYO cert) in $NS"
 mkroute gotak-demoland  gotak-gateway 8080 "gotak.$DOMAIN"
 mkroute vault-demoland  vault         8200 "vault.$DOMAIN"
 mkroute consul-demoland consul-ui     http "consul.$DOMAIN"
-mkroute redpanda-demoland kafka-console http "redpanda.$DOMAIN"   # Kafka topic viewer
 
 # Vault/Consul are admin surfaces: restrict to ALLOWLIST_IP (default dan's home
 # IP) until Boundary brokers access. The gotak app route stays public.
@@ -46,7 +45,7 @@ mkroute redpanda-demoland kafka-console http "redpanda.$DOMAIN"   # Kafka topic 
 # consul is restricted (reach it via Boundary).
 ALLOWLIST_IP="${ALLOWLIST_IP:-143.105.191.161/32 3.148.232.34/32 10.0.0.0/16}"
 echo ">> Restricting consul route to $ALLOWLIST_IP (vault stays public)"
-for r in consul-demoland redpanda-demoland; do
+for r in consul-demoland; do
   oc -n "$NS" annotate route "$r" "haproxy.router.openshift.io/ip_whitelist=$ALLOWLIST_IP" --overwrite >/dev/null
 done
 
