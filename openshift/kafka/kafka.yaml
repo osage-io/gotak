@@ -28,7 +28,7 @@ spec:
       initContainers:
         - name: seed-config
           image: docker.io/apache/kafka:3.9.0
-          command: ["sh","-c","cp -aL /opt/kafka/config/. /mnt/config/"]
+          command: ["sh","-c","cp -rL /opt/kafka/config/. /mnt/config/"]
           volumeMounts:
             - { name: config, mountPath: /mnt/config }
       containers:
