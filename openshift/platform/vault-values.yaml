@@ -66,9 +66,6 @@ server:
   route:
     enabled: true
     host: ""              # let OpenShift assign apps.<cluster-domain>
-    # Lock Vault to dan's home IP until Boundary brokers this instead.
-    annotations:
-      haproxy.router.openshift.io/ip_whitelist: "143.105.191.161/32 3.148.232.34/32 10.0.0.0/16"
     tls:
       termination: edge
       insecureEdgeTerminationPolicy: Redirect

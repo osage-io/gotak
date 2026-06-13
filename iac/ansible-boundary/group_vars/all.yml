@@ -19,6 +19,6 @@ boundary_tls_key_src: "~/.certs/demoland.key"
 boundary_targets:
   - { name: openshift-api, address: "api.gotak.daniel-fedick.aws.sbx.hashicorpdemo.com", port: 6443 }
   - { name: vault-ui,      address: "vault.demoland.io",   port: 443 }
-  - { name: consul-ui,     address: "consul.demoland.io",  port: 443 }
+  - { name: consul-ui,     address: "10.0.1.52",           port: 30850 }   # NodePort, not the vhost router (SNI mismatch)
   - { name: node-ssh,      address: "127.0.0.1",           port: 22 }
   - { name: postgres,      address: "10.0.1.52", port: 30432 }
