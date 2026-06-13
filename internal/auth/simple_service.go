@@ -89,7 +89,7 @@ func (s *SimpleAuthService) Login(ctx context.Context, req *SimpleLoginRequest) 
 	// Get user
 	var user SimpleUser
 	err := s.db.GetContext(ctx, &user,
-		"SELECT * FROM users WHERE username = $1",
+		"SELECT id, username, email, password_hash, first_name, last_name, role, group_id, is_active, is_verified, created_at, updated_at, last_login_at FROM users WHERE username = $1",
 		req.Username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -156,7 +156,7 @@ func (s *SimpleAuthService) GetUserByID(ctx context.Context, userID string) (*Si
 
 	var user SimpleUser
 	err = s.db.GetContext(ctx, &user,
-		"SELECT * FROM users WHERE id = $1",
+		"SELECT id, username, email, password_hash, first_name, last_name, role, group_id, is_active, is_verified, created_at, updated_at, last_login_at FROM users WHERE id = $1",
 		id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -172,7 +172,7 @@ func (s *SimpleAuthService) GetUserByID(ctx context.Context, userID string) (*Si
 func (s *SimpleAuthService) GetUserByUsername(ctx context.Context, username string) (*SimpleUser, error) {
 	var user SimpleUser
 	err := s.db.GetContext(ctx, &user,
-		"SELECT * FROM users WHERE username = $1",
+		"SELECT id, username, email, password_hash, first_name, last_name, role, group_id, is_active, is_verified, created_at, updated_at, last_login_at FROM users WHERE username = $1",
 		username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
