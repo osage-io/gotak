@@ -1,19 +1,13 @@
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata: { name: gotak-kafka, namespace: gotak }
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata: { name: gotak-kafka-anyuid, namespace: gotak }
-roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: system:openshift:scc:anyuid }
-subjects: [ { kind: ServiceAccount, name: gotak-kafka, namespace: gotak } ]
----
-# Single-node Kafka (KRaft, no Zookeeper) for the Communications message bus.
-# Demo-grade: ephemeral storage (emptyDir), auto-create topics, no auth.
-# Out of the Consul mesh (annotation) — gotak-server reaches it via tproxy
-# passthrough. The gotak app's Argo Application globs openshift/*.yaml, so this
-# deploys with the rest.
+# Single-node Kafka (KRaft, no Zookeeper) for the Communications message bus,
+# IN the Consul mesh (sidecar injected; gotak-server reaches it via mTLS,
+# governed by the gotak-server->kafka intention in consul-intentions.yaml).
+#
+# Runs under restricted-v2 (arbitrary uid) so the consul-dataplane sidecar can
+# co-validate (anyuid + the injector's seccomp annotations can't share an SCC).
+# apache/kafka wants to write /opt/kafka/config + logs, which an arbitrary uid
+# can't do in the image layer — an initContainer seeds them into emptyDirs that
+# the assigned uid writes via fsGroup.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,17 +22,19 @@ spec:
     metadata:
       labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka }
       annotations:
-        consul.hashicorp.com/connect-inject: "false"
+        consul.hashicorp.com/connect-inject: "true"
+        k8s.v1.cni.cncf.io/networks: consul-cni
     spec:
-      serviceAccountName: gotak-kafka
-      securityContext:
-        runAsUser: 1000
-        fsGroup: 1000
+      initContainers:
+        - name: seed-config
+          image: docker.io/apache/kafka:3.9.0
+          command: ["sh","-c","cp -aL /opt/kafka/config/. /mnt/config/"]
+          volumeMounts:
+            - { name: config, mountPath: /mnt/config }
       containers:
         - name: kafka
-          image: docker.io/apache/kafka:3.9.0   # multi-arch (arm64)
-          ports:
-            - { containerPort: 9092, name: kafka }
+          image: docker.io/apache/kafka:3.9.0
+          ports: [ { containerPort: 9092, name: kafka } ]
           env:
             - { name: KAFKA_NODE_ID, value: "1" }
             - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
@@ -54,18 +50,24 @@ spec:
             - { name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS, value: "0" }
             - { name: KAFKA_AUTO_CREATE_TOPICS_ENABLE, value: "true" }
             - { name: KAFKA_LOG_DIRS, value: "/var/lib/kafka/data" }
+            # Bound the broker heap so an in-pod console-consumer (the "watch"
+            # command) can't OOM the broker.
+            - { name: KAFKA_HEAP_OPTS, value: "-Xmx768m -Xms768m" }
           volumeMounts:
+            - { name: config, mountPath: /opt/kafka/config }
+            - { name: logs, mountPath: /opt/kafka/logs }
             - { name: data, mountPath: /var/lib/kafka/data }
           readinessProbe:
             tcpSocket: { port: 9092 }
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 10
           resources:
-            requests: { cpu: 100m, memory: 512Mi }
-            limits:   { cpu: "1", memory: 1Gi }
+            requests: { cpu: 100m, memory: 768Mi }
+            limits:   { cpu: "1", memory: 2Gi }
       volumes:
-        - name: data
-          emptyDir: {}
+        - { name: config, emptyDir: {} }
+        - { name: logs, emptyDir: {} }
+        - { name: data, emptyDir: {} }
 ---
 apiVersion: v1
 kind: Service
