@@ -36,8 +36,8 @@ export const MAP_LAYERS: { [key: string]: MapLayerConfig } = {
   darkTactical: {
     id: 'darkTactical',
     name: 'Dark Tactical',
-    url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',  // CartoDB: keyless (Stadia 401s without an API key/domain allowlist)
+    attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
     maxZoom: 20,
   },
   darkSatellite: {
