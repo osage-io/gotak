@@ -8,6 +8,11 @@ boundary_public_addr: "boundary.demoland.io"
 
 boundary_login_name: "gotak"
 
+# BYO TLS for the API/UI listener (https://boundary.demoland.io:9200).
+# Paths on the CONTROL machine; copied to /etc/boundary/tls on the node.
+boundary_tls_cert_src: "~/.certs/demoland-fullchain.crt"
+boundary_tls_key_src: "~/.certs/demoland.key"
+
 # Privileged-access targets brokered through the node worker. Fill in the route
 # hosts and the Postgres NodePort host (the SNO node IP) for your cluster.
 # See boundary/cluster-exposure.yaml for the consul-ui Route + postgres NodePort.
@@ -16,4 +21,4 @@ boundary_targets:
   - { name: vault-ui,      address: "vault.demoland.io",   port: 443 }
   - { name: consul-ui,     address: "consul.demoland.io",  port: 443 }
   - { name: node-ssh,      address: "127.0.0.1",           port: 22 }
-  - { name: postgres,      address: "REPLACE_WITH_SNO_NODE_IP", port: 30432 }
+  - { name: postgres,      address: "10.0.1.52", port: 30432 }

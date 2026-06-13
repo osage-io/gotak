@@ -18,9 +18,11 @@ worker {
 }
 
 listener "tcp" {
-  address     = "0.0.0.0:9200"
-  purpose     = "api"
-  tls_disable = true
+  address       = "0.0.0.0:9200"
+  purpose       = "api"
+  tls_disable   = false
+  tls_cert_file = "/etc/boundary/tls/fullchain.pem"
+  tls_key_file  = "/etc/boundary/tls/key.pem"
 }
 
 listener "tcp" {

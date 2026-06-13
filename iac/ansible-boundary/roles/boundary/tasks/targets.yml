@@ -11,7 +11,7 @@
 - name: Configure Boundary resources
   when: not targets_marker.stat.exists
   environment:
-    BOUNDARY_ADDR: "http://127.0.0.1:9200"
+    BOUNDARY_ADDR: "https://{{ boundary_public_addr }}:9200"
   block:
     - name: Generate the login password
       ansible.builtin.shell: "umask 077; openssl rand -hex 12 > /etc/boundary/login-pass.txt"
@@ -98,6 +98,6 @@
     - name: Show login details
       ansible.builtin.debug:
         msg:
-          - "Boundary API:  http://{{ boundary_public_addr }}:9200"
+          - "Boundary API:  https://{{ boundary_public_addr }}:9200"
           - "Login:         {{ boundary_login_name }} / {{ boundary_login_pass }}"
           - "(also saved on the node at /etc/boundary/login-pass.txt)"
