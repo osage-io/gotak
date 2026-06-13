@@ -103,6 +103,28 @@
     port: 5432
     timeout: 60
 
+- name: Ensure TLS dir
+  ansible.builtin.file:
+    path: /etc/boundary/tls
+    state: directory
+    mode: "0700"
+
+- name: Copy the demoland.io TLS cert + key from the control machine
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/boundary/tls/{{ item.dest }}"
+    mode: "0600"
+  loop:
+    - { src: "{{ boundary_tls_cert_src }}", dest: "fullchain.pem" }
+    - { src: "{{ boundary_tls_key_src }}",  dest: "key.pem" }
+  notify: restart boundary
+
+- name: Map boundary public name to localhost (CLI on the node validates the cert SNI)
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "127.0.0.1 {{ boundary_public_addr }}"
+    state: present
+
 - name: Render boundary.hcl
   ansible.builtin.template:
     src: boundary.hcl.j2
