@@ -97,13 +97,13 @@ CREATE OR REPLACE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 CREATE OR REPLACE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Insert default admin user (password: admin123)
+-- Insert default admin user (admin password set at deploy time (not stored in repo))
 -- Note: Change this password immediately in production!
 INSERT INTO users (username, email, password_hash, role, callsign, active)
 VALUES (
     'admin',
     'admin@gotak.local',
-    '$2a$10$QVVSQmJPalYzWEd2LlcG4u0VqXuv7nH/fObMH68/8ISpLUD4zzwae', -- bcrypt hash of 'admin123'
+    '$2a$10$7KvpZQsLHTeipj.MCCopyOtM7lp5qXwzYWqUmmA9Nbp3fjQKbikGy', -- bcrypt hash of the deploy-time admin password
     'admin',
     'ADMIN',
     true
