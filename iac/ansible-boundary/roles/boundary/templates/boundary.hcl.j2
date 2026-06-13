@@ -13,8 +13,8 @@ controller {
 worker {
   name              = "gotak-worker"
   description       = "gotak ingress worker"
-  public_addr       = "{{ boundary_public_addr }}"
-  initial_upstreams = ["127.0.0.1:9201"]
+  public_addr = "{{ boundary_public_addr }}"
+  # combined controller+worker: omit initial_upstreams (auto-wired in-process)
 }
 
 listener "tcp" {
@@ -26,7 +26,8 @@ listener "tcp" {
 }
 
 listener "tcp" {
-  address = "0.0.0.0:9201"
+  # combined mode: the in-process worker dials this; must be a concrete address
+  address = "127.0.0.1:9201"
   purpose = "cluster"
 }
 
