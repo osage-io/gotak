@@ -328,7 +328,7 @@ INSERT INTO config_settings (key, value, value_type, description, is_public) VAL
 ON CONFLICT (key) DO NOTHING;
 
 -- Create default admin user (admin password set at deploy time; see ops notes (not stored in repo))
--- Password hash for 'admin123' using bcrypt
+-- Password hash for the deploy-time admin password
 INSERT INTO users (id, username, email, password_hash, first_name, last_name, role, is_active, is_verified)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
