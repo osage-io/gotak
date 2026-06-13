@@ -31,6 +31,22 @@ resource "aws_security_group" "installer" {
     cidr_blocks = [var.ssh_ingress_cidr]
   }
 
+  ingress {
+    description = "Boundary API + admin UI (TLS)"
+    from_port   = 9200
+    to_port     = 9200
+    protocol    = "tcp"
+    cidr_blocks = var.boundary_client_cidrs
+  }
+
+  ingress {
+    description = "Boundary session proxy"
+    from_port   = 9202
+    to_port     = 9202
+    protocol    = "tcp"
+    cidr_blocks = var.boundary_client_cidrs
+  }
+
   egress {
     description = "all egress"
     from_port   = 0
