@@ -3,10 +3,16 @@
 # Idempotent: keys/passwords are generated once into /etc/boundary/keys.env and
 # reused, so re-runs don't rotate them or needlessly restart.
 
-- name: Install podman and unzip
+- name: Install docker and unzip (AL2023 has no podman package)
   ansible.builtin.dnf:
-    name: [podman, unzip]
+    name: [docker, unzip]
     state: present
+
+- name: Enable + start docker
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
 
 - name: Download Boundary
   ansible.builtin.get_url:
@@ -82,9 +88,9 @@
       ansible.builtin.set_fact:
         boundary_public_addr: "{{ node_ip.content }}"
 
-- name: Run Postgres (podman) for Boundary state
+- name: Run Postgres (docker) for Boundary state
   ansible.builtin.command: >
-    podman run -d --name boundary-pg --restart=always
+    docker run -d --name boundary-pg --restart=always
     -e POSTGRES_USER=boundary -e POSTGRES_PASSWORD={{ boundary_pg_pass }} -e POSTGRES_DB=boundary
     -p 127.0.0.1:5432:5432 docker.io/library/postgres:15
   args:

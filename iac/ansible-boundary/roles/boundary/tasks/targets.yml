@@ -67,8 +67,12 @@
     - name: Create access role
       ansible.builtin.command: >
         boundary roles create -recovery-config /etc/boundary/boundary.hcl
-        -scope-id {{ proj_id }} -name gotak-access -grant-scope-id {{ proj_id }} -format json
+        -scope-id {{ proj_id }} -name gotak-access -format json
       register: role_out
+    - name: Set role grant scope (boundary 0.18 syntax)
+      ansible.builtin.command: >
+        boundary roles add-grant-scopes -recovery-config /etc/boundary/boundary.hcl
+        -id {{ (role_out.stdout | from_json).item.id }} -grant-scope-id "this"
     - name: Add user to role
       ansible.builtin.command: >
         boundary roles add-principals -recovery-config /etc/boundary/boundary.hcl
