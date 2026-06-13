@@ -14,7 +14,11 @@ import './Communications.css';
 // For the demo we talk to the local Vault directly with the dev root token.
 // Do NOT ship a root token in frontend code outside a throwaway demo.
 const VAULT_ADDR = (typeof window !== 'undefined' && (window as any).GOTAK_CONFIG?.vaultUrl) || 'http://127.0.0.1:8200';
-const VAULT_TOKEN = 'root';
+// Vault token is entered by the operator (Vault config modal) and persisted in
+// THIS BROWSER's localStorage only — never baked into the served JS or git.
+const VAULT_TOKEN_KEY = 'gotak_vault_token';
+const getVaultToken = (): string =>
+  (typeof localStorage !== 'undefined' && localStorage.getItem(VAULT_TOKEN_KEY)) || 'root';
 const DEFAULT_TRANSIT_KEY = 'gotak-comms';
 
 // Each channel gets its own transit key, so a channel is "Encrypted" exactly
@@ -56,7 +60,7 @@ async function vaultEncrypt(
   plaintext: string,
   keyName: string,
   addr: string = VAULT_ADDR,
-  token: string = VAULT_TOKEN,
+  token: string = getVaultToken(),
 ): Promise<string> {
   const res = await fetch(`${addr}/v1/transit/encrypt/${encodeURIComponent(keyName)}`, {
     method: 'POST',
@@ -106,7 +110,7 @@ const Communications: React.FC = () => {
   const [vaultError, setVaultError] = useState<string | null>(null);
   const [vaultForm, setVaultForm] = useState({
     addr: VAULT_ADDR,
-    token: VAULT_TOKEN,
+    token: getVaultToken(),
     keyName: '',
   });
   // The channel the encryption modal is acting on (a room, or the AI officer).
@@ -349,7 +353,7 @@ const Communications: React.FC = () => {
     const targetId = chatState.showAIChat ? AI_OFFICER_ID : chatState.activeRoomId;
     if (!targetId) return;
     let cancelled = false;
-    vaultKeyExists(VAULT_ADDR, VAULT_TOKEN, channelKeyName(targetId)).then(exists => {
+    vaultKeyExists(VAULT_ADDR, getVaultToken(), channelKeyName(targetId)).then(exists => {
       if (cancelled) return;
       setEncryptedRooms(prev => {
         const next = new Set(prev);
@@ -368,7 +372,7 @@ const Communications: React.FC = () => {
       ? 'AI Intel Officer'
       : (chatState.rooms.find(r => r.id === targetId)?.name ?? targetId);
     setVaultTarget({ id: targetId, label });
-    setVaultForm({ addr: VAULT_ADDR, token: VAULT_TOKEN, keyName: channelKeyName(targetId) });
+    setVaultForm({ addr: VAULT_ADDR, token: getVaultToken(), keyName: channelKeyName(targetId) });
     setVaultError(null);
     setShowVaultModal(true);
   };
@@ -384,6 +388,8 @@ const Communications: React.FC = () => {
       if (!exists) {
         await vaultCreateKey(vaultForm.addr, vaultForm.token, vaultForm.keyName);
       }
+      // Remember the operator's token for encrypt-on-send + the indicator check.
+      if (typeof localStorage !== 'undefined') localStorage.setItem(VAULT_TOKEN_KEY, vaultForm.token);
       setEncryptedRooms(prev => new Set(prev).add(targetId));
       setShowVaultModal(false);
     } catch (err) {
