@@ -83,3 +83,25 @@ metadata:
   namespace: gotak
 spec:
   protocol: http
+---
+# Kafka is a TCP (non-HTTP) mesh service; default proxy protocol is tcp but
+# declare it explicitly. gotak-server publishes comms messages to it.
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: kafka
+  namespace: gotak
+spec:
+  protocol: tcp
+---
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: kafka
+  namespace: gotak
+spec:
+  destination:
+    name: kafka
+  sources:
+    - name: gotak-server
+      action: allow
