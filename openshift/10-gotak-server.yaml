@@ -114,6 +114,8 @@ spec:
               value: "5432"
             - name: GOTAK_CONFIG_PATH
               value: "/config/server.yaml"
+            - name: KAFKA_BROKERS
+              value: "kafka:9092"
           ports:
             - containerPort: 8080
               name: http-api

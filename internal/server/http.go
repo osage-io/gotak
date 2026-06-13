@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/dfedick/gotak/internal/kafkabus"
 	"net"
 	"net/http"
 	"os"
@@ -52,7 +53,8 @@ func NewHTTPServer(cfg *config.ServerConfig, log *logger.Logger, chatService *ch
 	router := mux.NewRouter()
 
 	// Create WebSocket hub
-	wsHub := handlers.NewTacticalWSHub(log, chatService)
+	kafkaProducer := kafkabus.New(os.Getenv("KAFKA_BROKERS"), log)
+	wsHub := handlers.NewTacticalWSHub(log, chatService, kafkaProducer)
 
 	// Create entity service (using mock for now)
 	entityService := handlers.NewMockEntityService(log)

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/dfedick/gotak/internal/chat"
+	"github.com/dfedick/gotak/internal/kafkabus"
 	"github.com/dfedick/gotak/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -188,10 +189,11 @@ type TacticalWSHub struct {
 	mu          sync.RWMutex
 	logger      *logger.Logger
 	chatService *chat.Service
+	kafka       *kafkabus.Producer
 }
 
 // NewTacticalWSHub creates a new WebSocket hub
-func NewTacticalWSHub(logger *logger.Logger, chatService *chat.Service) *TacticalWSHub {
+func NewTacticalWSHub(logger *logger.Logger, chatService *chat.Service, kafka *kafkabus.Producer) *TacticalWSHub {
 	return &TacticalWSHub{
 		clients:     make(map[*TacticalWSClient]bool),
 		broadcast:   make(chan TacticalWSMessage, 256),
@@ -199,6 +201,7 @@ func NewTacticalWSHub(logger *logger.Logger, chatService *chat.Service) *Tactica
 		unregister:  make(chan *TacticalWSClient),
 		logger:      logger,
 		chatService: chatService,
+		kafka:       kafka,
 	}
 }
 
@@ -618,6 +621,20 @@ func (c *TacticalWSClient) handleSendMessage(payload json.RawMessage) error {
 
 	// Broadcast message to room participants
 	c.hub.BroadcastChatMessage(req.RoomID, message, "new")
+
+	// Write-only mirror to Kafka: one topic per channel. req.MessageText is
+	// whatever the client sent — ciphertext (vault:v1:...) when the channel has
+	// Vault transit encryption enabled, plaintext otherwise. The server never
+	// decrypts, so watching the topic shows exactly what the client produced.
+	if c.hub.kafka != nil {
+		envelope, _ := json.Marshal(map[string]interface{}{
+			"roomId":    req.RoomID.String(),
+			"sender":    c.getCallsign(),
+			"timestamp": message.CreatedAt,
+			"content":   req.MessageText,
+		})
+		c.hub.kafka.PublishAsync("gotak.comms."+req.RoomID.String(), req.RoomID.String(), envelope)
+	}
 
 	return nil
 }
