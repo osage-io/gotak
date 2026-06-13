@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -345,6 +347,25 @@ type responseWrapper struct {
 func (w *responseWrapper) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ResponseWriter.WriteHeader(statusCode)
+}
+
+// Hijack lets WebSocket upgrades work through the logging middleware: gorilla
+// type-asserts the ResponseWriter to http.Hijacker, which the embedded interface
+// doesn't expose unless we delegate. Without this, /ws/tactical 500s with
+// "response does not implement http.Hijacker".
+func (w *responseWrapper) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("underlying ResponseWriter does not implement http.Hijacker")
+	}
+	return hj.Hijack()
+}
+
+// Flush delegates so streaming responses (SSE) keep working through the wrapper.
+func (w *responseWrapper) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }
 
 // Handle preflight requests
