@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -16,7 +18,7 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
-			
+
 			// Check if origin is allowed
 			allowed := false
 			for _, allowedOrigin := range allowedOrigins {
@@ -26,25 +28,25 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 					break
 				}
 			}
-			
+
 			if !allowed && len(allowedOrigins) > 0 {
 				// If no origins match and we have a whitelist, deny
 				if origin != "" {
 					w.Header().Set("Access-Control-Allow-Origin", allowedOrigins[0])
 				}
 			}
-			
+
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Requested-With")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Max-Age", "3600")
-			
+
 			// Handle preflight requests
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
 				return
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -55,22 +57,22 @@ func RequestLogger(logger *logger.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			
+
 			// Wrap response writer to capture status
 			wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-			
+
 			// Process request
 			next.ServeHTTP(wrapped, r)
-			
+
 			// Log request details
 			duration := time.Since(start)
 			userID := GetUserIDFromContext(r.Context())
-			
+
 			logEvent := logger.Info()
 			if userID != "" {
 				logEvent = logEvent.Str("user_id", userID)
 			}
-			
+
 			logEvent.
 				Str("method", r.Method).
 				Str("path", r.URL.Path).
@@ -96,38 +98,52 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hj, ok := rw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("underlying ResponseWriter does not implement http.Hijacker")
+	}
+	return hj.Hijack()
+}
+
+func (rw *responseWriter) Flush() {
+	if f, ok := rw.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
 // SecurityHeaders adds common security headers
 func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Prevent MIME sniffing
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		
+
 		// Prevent clickjacking
 		w.Header().Set("X-Frame-Options", "DENY")
-		
+
 		// XSS protection
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		
+
 		// Referrer policy
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		
+
 		// Content Security Policy (basic)
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'")
-		
+
 		// Strict Transport Security (HSTS) - only for HTTPS
 		if r.TLS != nil {
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
 
 // RateLimitInfo represents rate limiting configuration
 type RateLimitInfo struct {
-	Limit     int           // Requests per window
-	Window    time.Duration // Time window
-	KeyFunc   func(*http.Request) string // Function to generate rate limit key
+	Limit   int                        // Requests per window
+	Window  time.Duration              // Time window
+	KeyFunc func(*http.Request) string // Function to generate rate limit key
 }
 
 // Simple in-memory rate limiter (for production use Redis or similar)
@@ -143,7 +159,7 @@ func newRateLimiter() *rateLimiter {
 
 func (rl *rateLimiter) allow(key string, limit int, window time.Duration) bool {
 	now := time.Now()
-	
+
 	// Clean old requests
 	if requests, exists := rl.requests[key]; exists {
 		var validRequests []time.Time
@@ -154,12 +170,12 @@ func (rl *rateLimiter) allow(key string, limit int, window time.Duration) bool {
 		}
 		rl.requests[key] = validRequests
 	}
-	
+
 	// Check if limit exceeded
 	if len(rl.requests[key]) >= limit {
 		return false
 	}
-	
+
 	// Add current request
 	rl.requests[key] = append(rl.requests[key], now)
 	return true
@@ -175,26 +191,26 @@ func RateLimit(info RateLimitInfo) func(http.Handler) http.Handler {
 			return getClientIP(r)
 		}
 	}
-	
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := info.KeyFunc(r)
-			
+
 			if !globalRateLimiter.allow(key, info.Limit, info.Window) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusTooManyRequests)
-				
+
 				response := map[string]interface{}{
 					"error":   true,
 					"message": "Rate limit exceeded",
 					"code":    http.StatusTooManyRequests,
 				}
-				
+
 				// Don't log error on encode failure for rate limit response
 				_ = json.NewEncoder(w).Encode(response)
 				return
 			}
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -207,7 +223,7 @@ func JSONContentType(next http.Handler) http.Handler {
 		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/v1/") {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -224,21 +240,21 @@ func Recovery(logger *logger.Logger) func(http.Handler) http.Handler {
 						Str("path", r.URL.Path).
 						Str("ip", getClientIP(r)).
 						Msg("Request panic recovered")
-					
+
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusInternalServerError)
-					
+
 					response := map[string]interface{}{
 						"error":   true,
 						"message": "Internal server error",
 						"code":    http.StatusInternalServerError,
 					}
-					
+
 					// Don't log error on encode failure for panic recovery
 					_ = json.NewEncoder(w).Encode(response)
 				}
 			}()
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -248,13 +264,13 @@ func Recovery(logger *logger.Logger) func(http.Handler) http.Handler {
 func UserAgent(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userAgent := r.UserAgent()
-		
+
 		// Block empty or suspicious user agents if desired
 		if userAgent == "" {
 			// Set a default user agent for monitoring
 			r.Header.Set("User-Agent", "unknown")
 		}
-		
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -267,10 +283,10 @@ func RequestID(next http.Handler) http.Handler {
 			// Generate a simple request ID (in production, use UUID)
 			requestID = generateSimpleID()
 		}
-		
+
 		// Add to response header
 		w.Header().Set("X-Request-ID", requestID)
-		
+
 		// Add to request context for logging
 		ctx := context.WithValue(r.Context(), "request_id", requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
