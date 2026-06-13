@@ -327,14 +327,14 @@ INSERT INTO config_settings (key, value, value_type, description, is_public) VAL
 ('tak.heartbeat_interval', '30', 'integer', 'TAK heartbeat interval in seconds', false)
 ON CONFLICT (key) DO NOTHING;
 
--- Create default admin user (password: admin123 - CHANGE IN PRODUCTION!)
+-- Create default admin user (admin password set at deploy time; see ops notes (not stored in repo))
 -- Password hash for 'admin123' using bcrypt
 INSERT INTO users (id, username, email, password_hash, first_name, last_name, role, is_active, is_verified)
 VALUES (
     '00000000-0000-0000-0000-000000000001',
     'admin',
     'admin@gotak.local',
-    '$2a$10$QVVSQmJPalYzWEd2LlcG4u0VqXuv7nH/fObMH68/8ISpLUD4zzwae', -- bcrypt hash of 'admin123'
+    '$2a$10$7KvpZQsLHTeipj.MCCopyOtM7lp5qXwzYWqUmmA9Nbp3fjQKbikGy', -- bcrypt hash of the deploy-time admin password
     'System',
     'Administrator',
     'admin',
