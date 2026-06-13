@@ -28,6 +28,12 @@ variable "ssh_ingress_cidr" {
   default     = "0.0.0.0/0"
 }
 
+variable "boundary_client_cidrs" {
+  description = "CIDRs allowed to reach Boundary (API/UI 9200, session proxy 9202). Defaults to dan's home IP; update here (or as a TFC variable) if it changes."
+  type        = list(string)
+  default     = ["143.105.191.161/32"]
+}
+
 variable "ssh_public_key" {
   description = "SSH public key installed on the node (default: dfed01)."
   type        = string
