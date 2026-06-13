@@ -1,0 +1,74 @@
+---
+# Redpanda Console — web UI to browse Kafka topics + watch messages live.
+# Meshed (reaches kafka over mTLS via the console->kafka intention). It's also a
+# Route edge, so its inbound UI port is excluded from the proxy (the router
+# isn't a mesh member). Restricted to the home IP — it's an admin/demo surface.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kafka-console-config
+  labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+data:
+  config.yaml: |
+    kafka:
+      brokers:
+        - kafka:9092
+    server:
+      listenPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-console
+  labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+      annotations:
+        consul.hashicorp.com/connect-inject: "true"
+        k8s.v1.cni.cncf.io/networks: consul-cni
+        consul.hashicorp.com/transparent-proxy-exclude-inbound-ports: "8080"
+    spec:
+      containers:
+        - name: console
+          image: docker.io/redpandadata/console:v2.7.2
+          ports: [ { containerPort: 8080, name: http } ]
+          env:
+            - { name: CONFIG_FILEPATH, value: /etc/console/config.yaml }
+          volumeMounts:
+            - { name: config, mountPath: /etc/console }
+          readinessProbe:
+            httpGet: { path: /admin/health, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits:   { cpu: 500m, memory: 512Mi }
+      volumes:
+        - name: config
+          configMap: { name: kafka-console-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-console
+  labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+spec:
+  selector: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+  ports: [ { port: 8080, targetPort: 8080, name: http } ]
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: kafka-console
+  labels: { app.kubernetes.io/name: gotak, app.kubernetes.io/component: kafka-console }
+  annotations:
+    haproxy.router.openshift.io/ip_whitelist: "143.105.191.161/32"
+spec:
+  to: { kind: Service, name: kafka-console }
+  port: { targetPort: http }
+  tls: { termination: edge, insecureEdgeTerminationPolicy: Redirect }
