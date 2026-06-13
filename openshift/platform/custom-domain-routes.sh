@@ -39,6 +39,14 @@ mkroute gotak-demoland  gotak-gateway 8080 "gotak.$DOMAIN"
 mkroute vault-demoland  vault         8200 "vault.$DOMAIN"
 mkroute consul-demoland consul-ui     http "consul.$DOMAIN"
 
+# Vault/Consul are admin surfaces: restrict to ALLOWLIST_IP (default dan's home
+# IP) until Boundary brokers access. The gotak app route stays public.
+ALLOWLIST_IP="${ALLOWLIST_IP:-143.105.191.161/32}"
+echo ">> Restricting vault/consul routes to $ALLOWLIST_IP"
+for r in vault-demoland consul-demoland; do
+  oc -n "$NS" annotate route "$r" "haproxy.router.openshift.io/ip_whitelist=$ALLOWLIST_IP" --overwrite >/dev/null
+done
+
 echo ">> Repointing the web UI at the demoland.io endpoints"
 oc -n "$NS" patch configmap gotak-web-config --type merge -p "{\"data\":{
   \"GOTAK_API_URL\":\"https://gotak.$DOMAIN\",
